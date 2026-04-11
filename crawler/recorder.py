@@ -117,7 +117,7 @@ async def record_live_room(competitor: dict, duration: int = RECORD_DURATION_SEC
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=sys.platform == "linux",  # Linux 上用无头模式
+            headless=False,  # 必须 False，否则 x11grab 录不到内容（Linux 上配合 Xvfb）
             args=["--no-sandbox", "--disable-blink-features=AutomationControlled"],
         )
         context = await browser.new_context(
@@ -153,15 +153,21 @@ async def record_live_room(competitor: dict, duration: int = RECORD_DURATION_SEC
             # 启动 ffmpeg 录制
             ffmpeg_cmd = _build_ffmpeg_cmd(output_path, duration)
             print(f"[recorder] 开始录制 {competitor['name']}，时长 {duration}s ...")
+            print(f"[recorder] ffmpeg cmd: {' '.join(ffmpeg_cmd)}")
             ffmpeg_proc = subprocess.Popen(
                 ffmpeg_cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
 
             await asyncio.sleep(duration)
             ffmpeg_proc.terminate()
-            ffmpeg_proc.wait()
+            stdout, stderr = ffmpeg_proc.communicate(timeout=10)
+            if stderr:
+                # 只打印最后几行（ffmpeg 输出很多）
+                stderr_lines = stderr.decode('utf-8', errors='replace').strip().split('\n')
+                for line in stderr_lines[-5:]:
+                    print(f"[ffmpeg] {line}")
             print(f"[recorder] 录制完成: {output_path}")
 
         except Exception as e:

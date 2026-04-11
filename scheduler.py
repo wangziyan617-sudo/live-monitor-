@@ -6,6 +6,7 @@
 4. 存入数据库
 """
 import asyncio
+import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -23,11 +24,16 @@ from storage.db import (
 )
 
 
-async def process_competitor(competitor: dict):
+async def process_competitor(competitor: dict, duration: int):
     """完整处理单个竞品：录制 → 转写 → 分析 → 存库"""
     name = competitor["name"]
     print(f"\n{'='*50}")
     print(f"[scheduler] 开始处理: {name}  {datetime.now().strftime('%H:%M:%S')}")
+
+    # 跳过没有 live_url 的账号（主页检测逻辑不稳定）
+    if not competitor.get("live_url"):
+        print(f"[scheduler] {name} 没有 live_url，跳过（待补充直播间ID）")
+        return
 
     # 确保竞品记录存在
     get_or_create_competitor(
@@ -37,9 +43,9 @@ async def process_competitor(competitor: dict):
     )
 
     # Step 1: 录制
-    video_path = await record_live_room(competitor, duration=RECORD_DURATION_SECONDS)
+    video_path = await record_live_room(competitor, duration=duration)
     if not video_path:
-        print(f"[scheduler] {name} 未在直播，跳过")
+        print(f"[scheduler] {name} 未在直播或录制失败，跳过")
         return
 
     session_id = create_session(name, str(video_path))
@@ -51,6 +57,7 @@ async def process_competitor(competitor: dict):
         save_transcript(session_id, str(archive_path), full_text)
     except Exception as e:
         print(f"[scheduler] 转写失败: {e}")
+        import traceback; traceback.print_exc()
         return
 
     # Step 3: 分析
@@ -59,38 +66,45 @@ async def process_competitor(competitor: dict):
         save_analysis(session_id, result)
     except Exception as e:
         print(f"[scheduler] 分析失败: {e}")
+        import traceback; traceback.print_exc()
         return
 
     print(f"[scheduler] {name} 处理完成")
 
 
-async def run_daily_job():
+async def run_daily_job(duration: int):
     """每日任务：串行处理所有竞品（避免同时开多个浏览器）"""
     print(f"\n[scheduler] 每日任务开始 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    print(f"[scheduler] 录制时长: {duration}s，竞品数: {len(COMPETITORS)}")
     for competitor in COMPETITORS:
         try:
-            await process_competitor(competitor)
+            await process_competitor(competitor, duration)
         except Exception as e:
             print(f"[scheduler] 处理 {competitor['name']} 时出错: {e}")
+            import traceback; traceback.print_exc()
     print(f"[scheduler] 每日任务完成 {datetime.now().strftime('%H:%M:%S')}")
 
 
-def job():
-    asyncio.run(run_daily_job())
+def job(duration: int):
+    asyncio.run(run_daily_job(duration))
 
 
 if __name__ == "__main__":
     init_db()
 
-    import sys
+    # 解析参数
+    duration = int(os.environ.get("RECORD_DURATION", RECORD_DURATION_SECONDS))
+    if "--duration" in sys.argv:
+        idx = sys.argv.index("--duration")
+        if idx + 1 < len(sys.argv):
+            duration = int(sys.argv[idx + 1])
+
     if "--now" in sys.argv:
-        # 立即执行一次（测试用）
-        print("[scheduler] 立即执行模式")
-        job()
+        print(f"[scheduler] 立即执行模式，录制时长: {duration}s")
+        job(duration)
     else:
-        # 定时模式
         scheduler = BlockingScheduler(timezone="Asia/Shanghai")
-        scheduler.add_job(job, "cron", hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE)
+        scheduler.add_job(lambda: job(duration), "cron", hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE)
         print(f"[scheduler] 定时任务已启动，每天 {SCHEDULE_HOUR:02d}:{SCHEDULE_MINUTE:02d} 执行")
         print("[scheduler] Ctrl+C 退出")
         try:
