@@ -1,10 +1,11 @@
 """
-录屏模块：用 Playwright 打开抖音直播间，录制指定时长的视频
-- 自动检测直播间是否在播
-- 录制完成后保存到 storage/videos/
+录屏模块：
+- 本地 Mac：Playwright 打开直播间 + ffmpeg 录制屏幕区域（带系统音频需 BlackHole，否则只录画面）
+- Linux/GitHub Actions：Playwright + ffmpeg avfoundation/x11grab + PulseAudio 虚拟声卡
 """
 import asyncio
-import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -18,16 +19,12 @@ COOKIES_PATH = Path(__file__).parent.parent / "config" / "douyin_cookies.json"
 
 
 async def find_live_room(page, competitor: dict) -> str | None:
-    """
-    找到直播间 URL。优先用 live_url 直链，否则从主页检测。
-    """
-    # 优先用直播间直链
+    """找到直播间 URL，优先用 live_url 直链。"""
     if competitor.get("live_url"):
         live_url = competitor["live_url"]
         print(f"[recorder] 直接访问直播间: {live_url}")
         await page.goto(live_url, wait_until="domcontentloaded", timeout=30000)
         await page.wait_for_timeout(4000)
-        # 检查是否真的在播（有 video 元素）
         video_count = await page.locator('video').count()
         if video_count > 0:
             print(f"[recorder] 直播间已加载，video元素: {video_count}")
@@ -35,7 +32,6 @@ async def find_live_room(page, competitor: dict) -> str | None:
         print(f"[recorder] 直播间无视频，可能未在播")
         return None
 
-    # 没有直链，从主页检测
     home_url = competitor["url"]
     print(f"[recorder] 访问主页: {home_url}")
     await page.goto(home_url, wait_until="domcontentloaded", timeout=30000)
@@ -61,24 +57,68 @@ async def find_live_room(page, competitor: dict) -> str | None:
     return None
 
 
+def _build_ffmpeg_cmd(output_path: Path, duration: int) -> list:
+    """根据运行环境构建 ffmpeg 录制命令。"""
+    is_linux = sys.platform == "linux"
+
+    if is_linux:
+        # GitHub Actions / Linux：x11grab 录屏 + PulseAudio 录音
+        display = os.environ.get("DISPLAY", ":99")
+        return [
+            "ffmpeg", "-y",
+            "-f", "x11grab", "-r", "25",
+            "-s", "1280x720",
+            "-i", f"{display}.0+0,0",
+            "-f", "pulse", "-i", "VirtualSink.monitor",
+            "-t", str(duration),
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+            "-c:a", "aac", "-b:a", "64k",
+            str(output_path),
+        ]
+    else:
+        # Mac：avfoundation 录屏，尝试用 BlackHole 录音，没有就只录画面
+        audio_devices = subprocess.run(
+            ["ffmpeg", "-f", "avfoundation", "-list_devices", "true", "-i", ""],
+            capture_output=True, text=True
+        ).stderr
+        has_blackhole = "BlackHole" in audio_devices
+
+        if has_blackhole:
+            return [
+                "ffmpeg", "-y",
+                "-f", "avfoundation", "-r", "25",
+                "-i", "1:BlackHole 2ch",
+                "-t", str(duration),
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+                "-c:a", "aac", "-b:a", "64k",
+                str(output_path),
+            ]
+        else:
+            # 只录画面，无音频（本地测试用）
+            print("[recorder] 未检测到 BlackHole，仅录制画面（无音频）")
+            return [
+                "ffmpeg", "-y",
+                "-f", "avfoundation", "-r", "25",
+                "-i", "1:none",
+                "-t", str(duration),
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+                "-an",
+                str(output_path),
+            ]
+
+
 async def record_live_room(competitor: dict, duration: int = RECORD_DURATION_SECONDS) -> Path | None:
-    """
-    录制直播间视频，返回保存的视频路径。
-    duration: 录制秒数
-    """
+    """录制直播间视频，返回保存的视频路径。"""
     RECORD_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     date_str = datetime.now().strftime("%Y%m%d_%H%M")
     safe_name = competitor["name"].replace(" ", "_")
-    video_path = RECORD_OUTPUT_DIR / f"{safe_name}_{date_str}.webm"
+    output_path = RECORD_OUTPUT_DIR / f"{safe_name}_{date_str}.mp4"
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=False,  # 抖音检测无头浏览器，先用有头模式
-            args=[
-                "--no-sandbox",
-                "--disable-blink-features=AutomationControlled",
-            ],
+            headless=sys.platform == "linux",  # Linux 上用无头模式
+            args=["--no-sandbox", "--disable-blink-features=AutomationControlled"],
         )
         context = await browser.new_context(
             viewport={"width": 1280, "height": 720},
@@ -87,17 +127,12 @@ async def record_live_room(competitor: dict, duration: int = RECORD_DURATION_SEC
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/124.0.0.0 Safari/537.36"
             ),
-            record_video_dir=str(RECORD_OUTPUT_DIR),
-            record_video_size={"width": 1280, "height": 720},
         )
 
-        # 加载登录 cookies
+        import json
         if COOKIES_PATH.exists():
             cookies = json.loads(COOKIES_PATH.read_text())
             await context.add_cookies(cookies)
-            print(f"[recorder] 已加载登录 cookies ({len(cookies)} 条)")
-        else:
-            print(f"[recorder] 警告: 未找到 cookies，请先运行 login_helper.py 登录")
 
         page = await context.new_page()
 
@@ -108,18 +143,26 @@ async def record_live_room(competitor: dict, duration: int = RECORD_DURATION_SEC
                 await browser.close()
                 return None
 
-            # 等待直播画面真正加载出来（视频元素出现且不再显示"加载中"）
             print(f"[recorder] 等待直播画面加载...")
             try:
                 await page.wait_for_selector('video', timeout=20000)
-                # 额外等待几秒让视频流稳定
-                await page.wait_for_timeout(5000)
-                print(f"[recorder] 直播画面已加载，开始录制 {competitor['name']}，时长 {duration}s ...")
+                await page.wait_for_timeout(3000)
             except Exception:
-                print(f"[recorder] 等待视频超时，直接开始录制...")
+                print(f"[recorder] 等待视频超时，继续录制...")
+
+            # 启动 ffmpeg 录制
+            ffmpeg_cmd = _build_ffmpeg_cmd(output_path, duration)
+            print(f"[recorder] 开始录制 {competitor['name']}，时长 {duration}s ...")
+            ffmpeg_proc = subprocess.Popen(
+                ffmpeg_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
             await asyncio.sleep(duration)
-            print(f"[recorder] 录制完成")
+            ffmpeg_proc.terminate()
+            ffmpeg_proc.wait()
+            print(f"[recorder] 录制完成: {output_path}")
 
         except Exception as e:
             print(f"[recorder] 录制出错: {e}")
@@ -130,22 +173,15 @@ async def record_live_room(competitor: dict, duration: int = RECORD_DURATION_SEC
         await context.close()
         await browser.close()
 
-    # Playwright 录制的视频文件名是自动生成的，找最新的 webm
-    videos = sorted(RECORD_OUTPUT_DIR.glob("*.webm"), key=lambda f: f.stat().st_mtime)
-    if videos:
-        latest = videos[-1]
-        target = RECORD_OUTPUT_DIR / f"{safe_name}_{date_str}.webm"
-        latest.rename(target)
-        print(f"[recorder] 视频保存至: {target}")
-        return target
+    if output_path.exists() and output_path.stat().st_size > 10000:
+        return output_path
 
+    print(f"[recorder] 视频文件异常，可能录制失败")
     return None
 
 
 if __name__ == "__main__":
-    # 快速测试：录制30秒
     from config.settings import COMPETITORS
-    # 用猿辅导测试
     competitor = next(c for c in COMPETITORS if c["name"] == "猿辅导")
     result = asyncio.run(record_live_room(competitor, duration=30))
     print(f"结果: {result}")
