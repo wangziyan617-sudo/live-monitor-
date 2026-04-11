@@ -7,3 +7,4 @@ storage/data.db
 config/douyin_cookies.json
 *.webm
 *.mp4
+.claude/
