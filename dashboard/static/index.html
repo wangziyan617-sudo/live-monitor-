@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>竞品直播间监控看板</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; color: #1a1a1a; }
+  header { background: #fff; border-bottom: 1px solid #e8e8e8; padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  .date-picker { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .date-picker select, .date-picker input { padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #fff; padding: 6px; border-radius: 8px; width: fit-content; }
+  .tab { padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; color: #666; transition: all .15s; }
+  .tab.active { background: #1677ff; color: #fff; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #333; }
+
+  /* Compare grid */
+  .compare-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .competitor-card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); border-top: 3px solid #1677ff; }
+  .competitor-name { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+  .section-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: .5px; margin: 12px 0 6px; }
+  .tag { display: inline-block; background: #f0f5ff; color: #1677ff; border-radius: 4px; padding: 2px 8px; font-size: 12px; margin: 2px; }
+  .tag.green { background: #f6ffed; color: #52c41a; }
+  .tag.orange { background: #fff7e6; color: #fa8c16; }
+  .highlight-item { font-size: 13px; color: #555; padding: 4px 0; border-bottom: 1px dashed #f0f0f0; }
+  .highlight-item:last-child { border-bottom: none; }
+  .persona-text { font-size: 13px; color: #444; line-height: 1.6; }
+  .strategy-text { font-size: 13px; color: #444; line-height: 1.6; background: #fafafa; padding: 10px; border-radius: 6px; }
+
+  /* Sessions list */
+  .session-list { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .session-list th { text-align: left; padding: 10px 12px; background: #fafafa; border-bottom: 1px solid #f0f0f0; color: #666; font-weight: 500; }
+  .session-list td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; }
+  .session-list tr:hover td { background: #fafafa; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .status-analyzed { background: #f6ffed; color: #52c41a; }
+  .status-transcribed { background: #e6f7ff; color: #1677ff; }
+  .status-recorded { background: #fff7e6; color: #fa8c16; }
+  .btn { padding: 4px 12px; border: 1px solid #d9d9d9; border-radius: 5px; background: #fff; cursor: pointer; font-size: 13px; color: #333; }
+  .btn:hover { border-color: #1677ff; color: #1677ff; }
+  .btn-primary { background: #1677ff; color: #fff; border-color: #1677ff; }
+  .btn-primary:hover { background: #0958d9; }
+
+  /* Detail panel */
+  .detail-panel { display: none; }
+  .detail-panel.open { display: block; }
+  .script-item { background: #fafafa; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+  .script-type { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .script-content { font-size: 13px; color: #333; line-height: 1.6; }
+  .script-ts { font-size: 11px; color: #bbb; margin-top: 4px; }
+  .product-item { border: 1px solid #f0f0f0; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+  .product-name { font-weight: 600; font-size: 14px; }
+  .product-price { color: #f5222d; font-size: 13px; margin: 4px 0; }
+  .product-points { font-size: 12px; color: #666; }
+
+  /* Transcript */
+  .transcript-box { background: #fafafa; border-radius: 6px; padding: 16px; font-size: 13px; line-height: 1.8; color: #444; max-height: 500px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 60px 20px; color: #bbb; font-size: 14px; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 40px; color: #999; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>竞品直播间监控</h1>
+  <div class="date-picker">
+    <span style="font-size:13px;color:#666">日期</span>
+    <select id="dateSelect" onchange="onDateChange()">
+      <option value="">加载中...</option>
+    </select>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('compare')">横向对比</div>
+    <div class="tab" onclick="switchTab('sessions')">历史记录</div>
+  </div>
+
+  <!-- 横向对比 -->
+  <div id="tab-compare">
+    <div id="compareContent" class="loading">加载中...</div>
+  </div>
+
+  <!-- 历史记录 -->
+  <div id="tab-sessions" style="display:none">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <span class="card-title" style="margin:0">历史记录</span>
+        <select id="competitorFilter" onchange="loadSessions()" style="padding:5px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px">
+          <option value="">全部账号</option>
+        </select>
+      </div>
+      <table class="session-list">
+        <thead>
+          <tr>
+            <th>账号</th><th>录制时间</th><th>时长</th><th>状态</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="sessionsTbody"></tbody>
+      </table>
+    </div>
+    <!-- 详情面板 -->
+    <div id="detailPanel" class="detail-panel">
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <span class="card-title" style="margin:0" id="detailTitle">详情</span>
+          <button class="btn" onclick="closeDetail()">关闭</button>
+        </div>
+        <div class="tabs" style="margin-bottom:16px">
+          <div class="tab active" onclick="switchDetailTab('analysis')">分析结果</div>
+          <div class="tab" onclick="switchDetailTab('transcript')">完整转写</div>
+        </div>
+        <div id="detailAnalysis"></div>
+        <div id="detailTranscript" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentDate = '';
+let currentDetailSession = null;
+
+// 初始化
+async function init() {
+  await loadDates();
+  await loadCompetitors();
+  loadCompare();
+}
+
+async function loadDates() {
+  const res = await fetch('/api/available_dates');
+  const data = await res.json();
+  const sel = document.getElementById('dateSelect');
+  if (data.dates.length === 0) {
+    sel.innerHTML = '<option value="">暂无数据</option>';
+    currentDate = '';
+    return;
+  }
+  sel.innerHTML = data.dates.map(d =>
+    `<option value="${d}">${d}</option>`
+  ).join('');
+  currentDate = data.dates[0];
+}
+
+async function loadCompetitors() {
+  const res = await fetch('/api/competitors');
+  const data = await res.json();
+  const sel = document.getElementById('competitorFilter');
+  data.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+}
+
+function onDateChange() {
+  currentDate = document.getElementById('dateSelect').value;
+  loadCompare();
+}
+
+// 横向对比
+async function loadCompare() {
+  const el = document.getElementById('compareContent');
+  el.innerHTML = '<div class="loading">加载中...</div>';
+  const url = currentDate ? `/api/compare?date_str=${currentDate}` : '/api/compare';
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (!data.competitors || data.competitors.length === 0) {
+    el.innerHTML = '<div class="empty">该日期暂无分析数据<br>请先运行 scheduler.py --now 采集数据</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="margin-bottom:12px;font-size:13px;color:#888">${data.date} · 共 ${data.competitors.length} 个竞品</div>
+    <div class="compare-grid">
+      ${data.competitors.map(c => renderCompetitorCard(c)).join('')}
+    </div>
+  `;
+}
+
+function renderCompetitorCard(c) {
+  const products = c.key_products.map(p => `
+    <div class="product-item">
+      <div class="product-name">${p.name}</div>
+      ${p.price ? `<div class="product-price">¥${p.price}</div>` : ''}
+      <div class="product-points">${(p.selling_points || []).join(' · ')}</div>
+    </div>
+  `).join('') || '<div style="color:#bbb;font-size:13px">暂无商品数据</div>';
+
+  const highlights = c.highlights.map(h =>
+    `<div class="highlight-item">· ${h}</div>`
+  ).join('') || '<div style="color:#bbb;font-size:13px">暂无</div>';
+
+  return `
+    <div class="competitor-card">
+      <div class="competitor-name">${c.competitor}</div>
+      <div class="section-label">主推品</div>
+      ${products}
+      <div class="section-label">用户画像</div>
+      <div class="persona-text">${c.user_persona || '暂无'}</div>
+      <div class="section-label">话术策略</div>
+      <div class="strategy-text">${c.strategy_summary || '暂无'}</div>
+      <div class="section-label">Highlights</div>
+      ${highlights}
+    </div>
+  `;
+}
+
+// 历史记录
+async function loadSessions() {
+  const competitorId = document.getElementById('competitorFilter').value;
+  let url = '/api/sessions?limit=50';
+  if (competitorId) url += `&competitor_id=${competitorId}`;
+  const res = await fetch(url);
+  const sessions = await res.json();
+  const tbody = document.getElementById('sessionsTbody');
+
+  if (sessions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#bbb;padding:30px">暂无记录</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sessions.map(s => `
+    <tr>
+      <td>${s.competitor}</td>
+      <td>${s.recorded_at.replace('T', ' ').slice(0,16)}</td>
+      <td>${s.duration ? Math.round(s.duration/60) + ' 分钟' : '-'}</td>
+      <td><span class="status-badge status-${s.status}">${statusLabel(s.status)}</span></td>
+      <td>
+        ${s.status === 'analyzed' ? `<button class="btn btn-primary" onclick="openDetail(${s.id}, '${s.competitor}')">查看分析</button>` : '-'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function statusLabel(s) {
+  return { recorded: '已录制', transcribed: '已转写', analyzed: '已分析' }[s] || s;
+}
+
+// 详情面板
+async function openDetail(sessionId, name) {
+  currentDetailSession = sessionId;
+  document.getElementById('detailTitle').textContent = name + ' · 分析详情';
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+  await loadDetailAnalysis(sessionId);
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+}
+
+function switchDetailTab(tab) {
+  document.querySelectorAll('#detailPanel .tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'analysis') || (i === 1 && tab === 'transcript'));
+  });
+  document.getElementById('detailAnalysis').style.display = tab === 'analysis' ? '' : 'none';
+  document.getElementById('detailTranscript').style.display = tab === 'transcript' ? '' : 'none';
+  if (tab === 'transcript' && currentDetailSession) loadDetailTranscript(currentDetailSession);
+}
+
+async function loadDetailAnalysis(sessionId) {
+  const res = await fetch(`/api/analysis/${sessionId}`);
+  const a = await res.json();
+  if (a.error) {
+    document.getElementById('detailAnalysis').innerHTML = `<div class="empty">${a.error}</div>`;
+    return;
+  }
+
+  const products = a.key_products.map(p => `
+    <div class="product-item">
+      <div class="product-name">${p.name}</div>
+      ${p.price ? `<div class="product-price">¥${p.price}</div>` : ''}
+      <div class="product-points">${(p.selling_points || []).join(' · ')}</div>
+    </div>
+  `).join('');
+
+  const scripts = a.sales_scripts.map(s => `
+    <div class="script-item">
+      <div class="script-type">${s.type}</div>
+      <div class="script-content">${s.content}</div>
+      ${s.timestamp ? `<div class="script-ts">${s.timestamp}</div>` : ''}
+    </div>
+  `).join('');
+
+  const highlights = a.highlights.map(h => `<div class="highlight-item">· ${h}</div>`).join('');
+
+  document.getElementById('detailAnalysis').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="section-label">主推品</div>
+        ${products || '<div style="color:#bbb;font-size:13px">暂无</div>'}
+        <div class="section-label" style="margin-top:16px">用户画像</div>
+        <div class="persona-text">${a.user_persona || '暂无'}</div>
+        <div class="section-label" style="margin-top:16px">话术策略</div>
+        <div class="strategy-text">${a.strategy_summary || '暂无'}</div>
+        <div class="section-label" style="margin-top:16px">Highlights</div>
+        ${highlights || '<div style="color:#bbb;font-size:13px">暂无</div>'}
+      </div>
+      <div>
+        <div class="section-label">话术片段</div>
+        ${scripts || '<div style="color:#bbb;font-size:13px">暂无</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function loadDetailTranscript(sessionId) {
+  const el = document.getElementById('detailTranscript');
+  if (el.dataset.loaded === String(sessionId)) return;
+  el.innerHTML = '<div class="loading">加载中...</div>';
+  const res = await fetch(`/api/transcript/${sessionId}`);
+  const t = await res.json();
+  if (t.error) {
+    el.innerHTML = `<div class="empty">${t.error}</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="transcript-box">${escapeHtml(t.full_text)}</div>`;
+  el.dataset.loaded = String(sessionId);
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'compare') || (i === 1 && tab === 'sessions'));
+  });
+  document.getElementById('tab-compare').style.display = tab === 'compare' ? '' : 'none';
+  document.getElementById('tab-sessions').style.display = tab === 'sessions' ? '' : 'none';
+  if (tab === 'sessions') loadSessions();
+}
+
+init();
+</script>
+</body>
+</html>

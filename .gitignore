@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+.env
+storage/videos/
+storage/data.db
+config/douyin_cookies.json
+*.webm
+*.mp4
