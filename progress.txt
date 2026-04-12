@@ -33,4 +33,15 @@
   - Douyin stream API: `https://www.douyin.com/aweme/v1/web/room/feed/?room_id=...&device_platform=webapp&aid=6383` returns JSON with `stream_url.hls_pull_url.HD`
   - Strategy 2 route handler must `await route.continue_()` or requests hang — don't just abort
   - headless=True is fine for m3u8 extraction (no video rendering needed, unlike x11grab recording)
+  - Groq SDK raises `httpx.HTTPStatusError` on HTTP errors; catch `e.response.status_code == 429` to detect rate limits
+  - When retrying a file upload API, must reopen the file since the pointer is consumed — keep a separate reference and close it explicitly on retry
+
+---
+
+## 2026-04-12 - US-002
+- What was implemented: Added exponential backoff retry (2^n seconds, up to 3 retries) to Groq Whisper transcription call. Catches HTTPStatusError 429 specifically. Reopens file on retry since pointer is consumed.
+- Files changed: `transcriber/whisper_transcribe.py`
+- **Learnings for future iterations:**
+  - Groq audio transcription uses httpx under the hood — HTTPStatusError is the right exception to catch
+  - File pointer gets consumed on first upload attempt: must reassign `audio_file = open(...)` inside the retry loop, not just seek(0)
 
