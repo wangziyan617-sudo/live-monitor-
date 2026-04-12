@@ -116,8 +116,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Already satisfied — all json.loads() calls use `or \"[]\"` guard (e.g. a.key_products or \"[]\"), which handles both None and empty string"
     },
     {
       "id": "US-009",
