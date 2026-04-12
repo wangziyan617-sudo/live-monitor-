@@ -149,31 +149,34 @@ def export_trend():
     """).fetchall()
     conn.close()
 
-    # 按 [day][competitor] 去重（每天只取最新一场）
+    # 按 [day][competitor] 聚合（每天每竞品可能多场，全部保留）
     seen = {}
     for r in rows:
         day, competitor, session_id = r[0], r[1], r[2]
         key = (day, competitor)
+        kps = _parse_json_field(r[3])
+        highlights = _parse_json_field(r[4])
+        item = {
+            "day": day, "competitor": competitor, "session_id": session_id,
+            "products": [p["name"] for p in kps if isinstance(p, dict)],
+            "highlights": highlights,
+            "strategy": r[5] or "",
+        }
         if key not in seen:
-            kps = _parse_json_field(r[3])
-            highlights = _parse_json_field(r[4])
-            seen[key] = {
-                "day": day, "competitor": competitor, "session_id": session_id,
-                "products": [p["name"] for p in kps if isinstance(p, dict)],
-                "highlights": highlights,
-                "strategy": r[5] or "",
-            }
+            seen[key] = []
+        seen[key].append(item)
 
     # 按竞品聚合
-    competitors = sorted(set(v["competitor"] for v in seen.values()))
-    days = sorted(set(v["day"] for v in seen.values()), reverse=True)
+    competitors = sorted(set(v[0]["competitor"] for v in seen.values()))
+    days = sorted(set(v[0]["day"] for v in seen.values()), reverse=True)
 
-    # trend[day][comp] = [item]（每天每个竞品最多一条）
+    # trend[day][comp] = [item1, item2, ...]（每天每竞品可能多条）
     trend_by_day = {}
     for d in days:
         trend_by_day[d] = {}
         for comp in competitors:
-            trend_by_day[d][comp] = [seen[(d, comp)]] if (d, comp) in seen else []
+            key = (d, comp)
+            trend_by_day[d][comp] = seen.get(key, [])
 
     return {"days": days, "competitors": competitors, "trend": trend_by_day}
 
@@ -718,9 +721,10 @@ function renderTrend() {
   const range = document.getElementById("fTrendRange").value;
 
   const { days, trend } = ALL.trend;
+  const allCompNames = days.length ? Object.keys(trend[days[0]] || {}) : [];
   const competitors = compId
     ? ALL.competitors.filter(c => c.id === compId).map(c => c.name)
-    : days.length ? Object.keys(trend[days[0]] || {}) : [];
+    : allCompNames;
 
   let filteredDays = days;
   if (range !== "all") {
@@ -730,31 +734,43 @@ function renderTrend() {
   }
 
   if (!filteredDays.length || !competitors.length) {
-    el.innerHTML = '<div class="empty">暂无动态数据</div>'; return;
+    el.innerHTML = '<div class="empty">暂无动态数据<br><br><span style="color:var(--text-3)">积累多天数据后将自动展示各竞品推品和话术变化趋势。</span></div>'; return;
   }
 
-  let html = `<div class="card"><div class="table-wrap"><table class="trend-table">
-    <thead><tr><th>日期</th><th>竞品</th><th>主推品</th><th>关键变化</th></tr></thead><tbody>`;
+  let html = `<div class="card" style="margin-bottom:12px"><div class="table-wrap"><table class="trend-table">
+    <thead><tr><th>时间</th><th>竞品</th><th>场次</th><th>主推品</th><th>关注亮点</th></tr></thead><tbody>`;
 
   for (const day of filteredDays) {
     const dayData = trend[day] || {};
     for (const comp of competitors) {
       const items = dayData[comp] || [];
       if (!items.length) continue;
-      const item = items[0]; // 每天取最新
-      const products = item.products || [];
-      const highlights = item.highlights || [];
-      // 找出"新变化"（highlight里包含"首次"、"明确"、"强调"、"新"等词）
-      const changes = highlights.filter(h => /首次|明确|新|强调|突出|变化|首次/.test(h));
-      html += `
-        <tr>
-          <td style="white-space:nowrap">${day}</td>
-          <td><b>${escHtml(comp)}</b></td>
-          <td>${products.map(p => `<div style="font-size:13px">${escHtml(p)}</div>`).join("") || '<span style="color:var(--text-3)">暂无</span>'}</td>
-          <td>
-            ${changes.length ? changes.map(c => `<span class="change-new">• ${escHtml(c)}</span>`).join("<br>") : '<span style="color:var(--text-3);font-size:12px">无明显变化</span>'}
-          </td>
-        </tr>`;
+
+      items.forEach(function(item, idx) {
+        const s = ALL.sessions.find(function(x) { return x.id === item.session_id; });
+        const time = s ? s.recorded_at.slice(11, 16) : "";
+        const products = item.products || [];
+        const highlights = item.highlights || [];
+        const notable = highlights.filter(function(h) { return /首次|明确|新|强|突|变化|强调|提出|对比|差异/.test(h); });
+        html += "<tr>" +
+          "<td style='white-space:nowrap;color:var(--text-3);font-size:12px'>" + day + " " + time + "</td>" +
+          "<td><b>" + escHtml(comp) + "</b></td>" +
+          "<td style='color:var(--text-3);font-size:12px'>" + (items.length > 1 ? "第" + (idx+1) + "场" : "—") + "</td>" +
+          "<td style='font-size:13px'>" + (products.length ? products.map(function(p) { return "<div>" + escHtml(p) + "</div>"; }).join("") : "<span style='color:var(--text-3)'>暂无</span>") + "</td>" +
+          "<td>" + (notable.length ? notable.map(function(c) { return "<span class='change-new' style='display:block;margin-bottom:3px'>• " + escHtml(c) + "</span>"; }).join("") : "<span style='color:var(--text-3);font-size:12px'>—</span>") + "</td>" +
+          "</tr>";
+      });
+
+      // 同日多场：追加变化分析行
+      if (items.length > 1) {
+        const allHighlights = items.flatMap(function(i) { return i.highlights || []; });
+        const newProducts = allHighlights.filter(function(h) { return /首次|明确|新|提出|强调|突出|变化/.test(h); });
+        html += "<tr style='background:#fafafa'>" +
+          "<td colspan='2' style='font-size:12px;color:var(--text-3);font-style:italic'>同日变化分析</td>" +
+          "<td colspan='3' style='font-size:12px;color:var(--text-2)'>" +
+          (newProducts.length ? newProducts.map(function(c) { return "<span class='change-new' style='margin-right:4px'>变化: " + escHtml(c) + "</span>"; }).join("") : "<span style='color:var(--text-3)'>多场主推品无明显差异</span>") +
+          "</td></tr>";
+      }
     }
   }
 
