@@ -65,6 +65,17 @@
 - Files changed: `transcriber/whisper_transcribe.py`
 - **Learnings for future iterations:**
   - Format `0xFFFF` gives range 0-65535 (4 hex digits); use `04x` in format to 0-pad to exactly 4 chars
+  - Delete video after transcript is saved (Step 2), not after recording (Step 1) — safety guarantee
+  - Use `try/except` around cleanup with no re-raise; only `print` warning so pipeline continues
+
+---
+
+## 2026-04-12 - US-006
+- What was implemented: Added video file cleanup step after analysis; deletes mp4/webm only after transcript is saved; cleanup failures print warning only.
+- Files changed: `scheduler.py`
+- **Learnings for future iterations:**
+  - Always delete after data is safely persisted, never before
+  - Cleanup failure should never raise — wrap in try/except, log and continue
 
 ---
 
