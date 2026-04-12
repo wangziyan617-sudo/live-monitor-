@@ -26,25 +26,34 @@ ANALYSIS_PROMPT = """以下是直播间「{name}」的转写文本：
 {{
   "key_products": [
     {{
-      "name": "商品名称",
+      "name": "商品名称（品牌+产品，如'猿辅导·数学思维课'）",
       "price": "价格（如有）",
-      "selling_points": ["卖点1", "卖点2"]
+      "selling_points": ["卖点1", "卖点2"],
+      "scripts": [
+        {{
+          "type": "话术类型（暖场/开场/痛点/价值塑造/效果承诺/信任背书/比喻说服/促销逼单/服务保障等）",
+          "content": "原文话术片段",
+          "timestamp": "时间戳（如有）"
+        }}
+      ]
     }}
   ],
   "sales_scripts": [
     {{
-      "type": "话术类型（开场/逼单/福利/痛点/信任背书等）",
+      "type": "话术类型",
       "content": "原文话术片段",
-      "timestamp": "时间戳（如有）"
+      "timestamp": "时间戳"
     }}
   ],
-  "user_persona": "目标用户画像描述（年龄、需求、痛点等）",
+  "user_persona": "目标用户画像描述（年龄、年级、需求、痛点等）",
   "strategy_summary": "整体话术策略总结（2-3句话）",
   "highlights": [
     "值得关注的亮点或异常点1",
     "值得关注的亮点或异常点2"
   ]
-}}"""
+}}
+
+【重要】每个主推品须附带该产品相关的话术片段（scripts字段），话术片段须有完整 timestamp。"""
 
 
 def analyze_transcript(transcript_text: str, competitor_name: str) -> dict:

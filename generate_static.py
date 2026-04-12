@@ -846,13 +846,63 @@ function groupScriptsByType(scripts) {
     if (!groups[t]) groups[t] = [];
     groups[t].push(sc);
   });
-  // 按固定顺序排序
   var ordered = [];
   SCRIPT_TYPE_ORDER.forEach(function(t) {
     if (groups[t]) { ordered.push({ type: t, scripts: groups[t] }); delete groups[t]; }
   });
   Object.keys(groups).forEach(function(t) { ordered.push({ type: t, scripts: groups[t] }); });
   return ordered;
+}
+
+// 按产品分组展示话术（优先用 key_products 里的 scripts）
+function renderProductScripts(kps) {
+  if (!kps || !kps.length) return "";
+  var html = "";
+  kps.forEach(function(p, pi) {
+    var scripts = p.scripts || [];
+    var sps = p.selling_points || [];
+    var price = p.price;
+    // 判断是否有产品级话术
+    var hasScripts = scripts.length > 0;
+    html += '<div style="margin-bottom:20px;border:1px solid #eee;border-radius:8px;overflow:hidden">';
+    // 产品标题栏
+    var headerBg = pi === 0 ? "#1677ff" : pi === 1 ? "#52c41a" : "#fa8c16";
+    html += '<div style="background:' + headerBg + ';color:#fff;padding:8px 14px;font-weight:600;font-size:14px">';
+    html += escHtml(p.name || "产品" + (pi + 1));
+    if (price) html += ' <span style="font-size:13px;opacity:0.9">· ' + escHtml(price) + '</span>';
+    if (sps.length) html += ' <span style="font-size:12px;opacity:0.8">· ' + sps.slice(0,3).map(function(s){return escHtml(s);}).join(" · ") + '</span>';
+    html += '</div>';
+    // 卖点（全部）
+    if (sps.length) {
+      html += '<div style="padding:8px 14px;background:#fafafa;border-bottom:1px solid #f0f0f0">';
+      sps.forEach(function(sp) {
+        html += '<span class="badge" style="margin:2px">' + escHtml(sp) + '</span>';
+      });
+      html += '</div>';
+    }
+    // 话术片段
+    if (hasScripts) {
+      var groups = groupScriptsByType(scripts);
+      groups.forEach(function(g) {
+        var label = SCRIPT_TYPE_LABELS[g.type] || g.type;
+        var badgeColor = g.type.indexOf("痛点") !== -1 ? "o" :
+                         g.type.indexOf("逼单") !== -1 || g.type.indexOf("催单") !== -1 ? "r" :
+                         g.type.indexOf("价值") !== -1 || g.type.indexOf("产品") !== -1 ? "g" : "";
+        html += '<div style="padding:8px 14px;border-bottom:1px solid #f5f5f5">';
+        html += '<div style="font-size:12px;color:#888;margin-bottom:6px;font-weight:600">' + escHtml(label) + ' ×' + g.scripts.length + '</div>';
+        g.scripts.forEach(function(sc) {
+          html += '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:6px">';
+          if (sc.timestamp) html += '<span class="badge" style="margin-right:6px;flex-shrink:0">' + escHtml(sc.timestamp) + '</span>';
+          html += escHtml(sc.content || "") + '</div>';
+        });
+        html += '</div>';
+      });
+    } else {
+      html += '<div style="padding:12px 14px;color:#bbb;font-size:13px">暂无话术片段</div>';
+    }
+    html += '</div>';
+  });
+  return html;
 }
 
 function renderScriptGroups(scripts) {
@@ -920,49 +970,155 @@ function openDetail(sessionId) {
   var t = ALL.transcripts.find(function(x) { return x.session_id === sessionId; });
   if (!a) { panel.innerHTML = '<div class="err-panel">暂无分析数据</div>'; panel.classList.add("open"); return; }
 
-  var products = renderProducts(a.key_products);
-  var scriptGroups = renderScriptGroups(a.sales_scripts || []);
+  // 判断是否已有按产品分组的话术（新格式）或旧的扁平话术
+  var hasProductScripts = (a.key_products || []).some(function(p) { return p.scripts && p.scripts.length; });
+  var productScriptsHtml = renderProductScripts(a.key_products || []);
+
+  // 兜底：旧格式话术（按类型分组）
+  var fallbackScripts = renderScriptGroups(a.sales_scripts || []);
+
   var highlights = a.highlights.map(function(h) { return '<div class="highlight-item">• ' + escHtml(h) + '</div>'; }).join("");
   var transcriptHtml = t ? renderTranscript(t.full_text) : '<div class="empty">暂无转写文本</div>';
 
+  // 下载话术：生成结构化文本
+  function makeScriptDownload() {
+    var kps = a.key_products || [];
+    var flat = a.sales_scripts || [];
+    var lines = [];
+    lines.push("账号: " + (s.competitor || ""));
+    lines.push("日期: " + (s.recorded_at || "").slice(0, 10));
+    lines.push("时长: " + (s.duration ? Math.round(s.duration/60) + "分钟" : "—"));
+    lines.push("═".repeat(50));
+    lines.push("");
+    if (kps.length) {
+      lines.push("【主推品】");
+      kps.forEach(function(p, pi) {
+        lines.push("  " + (pi+1) + ". " + (p.name||"") + (p.price ? "  ¥" + p.price : ""));
+        if (p.selling_points && p.selling_points.length) {
+          lines.push("     卖点: " + p.selling_points.join("；"));
+        }
+        if (p.scripts && p.scripts.length) {
+          lines.push("     话术片段:");
+          p.scripts.forEach(function(sc) {
+            lines.push("       [" + (sc.timestamp||"") + "] " + (sc.type||"") + ": " + (sc.content||""));
+          });
+        }
+      });
+      lines.push("");
+    }
+    if (flat.length) {
+      lines.push("【全部话术片段（按类型）】");
+      var groups = groupScriptsByType(flat);
+      groups.forEach(function(g) {
+        lines.push("  ◆ " + g.type + " ×" + g.scripts.length);
+        g.scripts.forEach(function(sc) {
+          lines.push("    [" + (sc.timestamp||"") + "] " + (sc.content||""));
+        });
+      });
+      lines.push("");
+    }
+    if (a.user_persona) { lines.push("【用户画像】"); lines.push(a.user_persona); lines.push(""); }
+    if (a.strategy_summary) { lines.push("【话术策略】"); lines.push(a.strategy_summary); lines.push(""); }
+    if (a.highlights && a.highlights.length) { lines.push("【Highlights】"); a.highlights.forEach(function(h){ lines.push("• " + h); }); }
+    return lines.join("\n");
+  }
+
+  var downloadTxtContent = makeScriptDownload();
+  var downloadBtn = '<button class="btn" onclick="downloadScriptText(' + sessionId + ')">📥 下载话术文本</button>';
+  var downloadJsonBtn = '<button class="btn" onclick="downloadScriptJson(' + sessionId + ')">📥 下载JSON</button>';
+
   panel.innerHTML = '<div class="detail-header">' +
     '<div class="detail-title">' + escHtml(s.competitor) + ' · ' + fmtDate(s.recorded_at) + ' · ' + (s.duration ? Math.round(s.duration/60) + '分钟' : '') + '</div>' +
+    '<div style="display:flex;gap:8px">' +
+    downloadTxtContent ? downloadBtn : '' +
+    downloadBtn +
+    downloadJsonBtn +
     '<button class="btn" onclick="closeDetail()">关闭</button>' +
-    '</div>' +
+    '</div></div>' +
     '<div style="display:flex;gap:8px;margin-bottom:16px">' +
-    '<button class="tab active" id="dt-tab-analysis" onclick="showDetailTab(\'analysis\')">分析详情</button>' +
+    '<button class="tab active" id="dt-tab-analysis" onclick="showDetailTab(\'analysis\')">' + (hasProductScripts ? "品牌·产品话术" : "分析详情") + '</button>' +
+    '<button class="tab" id="dt-tab-type" onclick="showDetailTab(\'type\')">按类型</button>' +
     '<button class="tab" id="dt-tab-transcript" onclick="showDetailTab(\'transcript\')">完整转写</button>' +
     '</div>' +
+
+    // 品牌·产品话术（新格式）
     '<div id="dt-analysis">' +
     '<div class="detail-grid">' +
     '<div>' +
-    '<div class="section-label">主推品</div>' + products +
+    '<div class="section-label">主推品（含话术）</div>' + productScriptsHtml +
     '<div class="section-label" style="margin-top:16px">用户画像</div><div class="persona-text">' + escHtml(a.user_persona || "暂无") + '</div>' +
     '<div class="section-label" style="margin-top:16px">话术策略</div><div class="strategy-text">' + escHtml(a.strategy_summary || "暂无") + '</div>' +
     '<div class="section-label" style="margin-top:16px">Highlights</div>' + (highlights || '<div style="color:var(--text-3)">暂无</div>') +
     '</div>' +
-    '<div>' +
-    '<div class="section-label">话术片段（按类型分组）</div>' + scriptGroups +
+    '<div id="dt-type-view">' +
+    '<div class="section-label">全部话术（按类型）</div>' + fallbackScripts +
     '</div>' +
     '</div></div>' +
     '<div id="dt-transcript" style="display:none">' + transcriptHtml + '</div>';
+
+  // 存储下载内容
+  panel.dataset.downloadText = downloadTxtContent;
+  panel.dataset.downloadJson = JSON.stringify({session: s, analysis: a, transcript: t ? {full_text: t.full_text} : null}, null, 2);
+
   panel.classList.add("open");
   panel.scrollIntoView({ behavior: "smooth" });
+}
+
+function downloadScriptText(sessionId) {
+  var panel = document.getElementById("detailPanel");
+  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
+  var text = panel.dataset.downloadText || "";
+  if (!text) return;
+  var blob = new Blob(["\uFEFF" + text], {type:"text/plain;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "话术_" + (s ? s.competitor + "_" + s.recorded_at.slice(0,10) : sessionId) + ".txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function downloadScriptJson(sessionId) {
+  var panel = document.getElementById("detailPanel");
+  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
+  var json = panel.dataset.downloadJson || "{}";
+  var blob = new Blob([json], {type:"application/json"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "分析_" + (s ? s.competitor + "_" + s.recorded_at.slice(0,10) : sessionId) + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 function closeDetail() {
   document.getElementById("detailPanel").classList.remove("open");
 }
 
-function openDetailAndShowScripts(sessionId) {
-  openDetail(sessionId);
+function showDetailTab(tab) {
+  document.getElementById("dt-tab-analysis") && document.getElementById("dt-tab-analysis").classList.toggle("active", tab === "analysis");
+  document.getElementById("dt-tab-type") && document.getElementById("dt-tab-type").classList.toggle("active", tab === "type");
+  document.getElementById("dt-tab-transcript") && document.getElementById("dt-tab-transcript").classList.toggle("active", tab === "transcript");
+  var analysisDiv = document.getElementById("dt-analysis");
+  var typeDiv = document.getElementById("dt-type-view");
+  if (analysisDiv) analysisDiv.style.display = (tab === "analysis") ? "" : "none";
+  if (typeDiv) typeDiv.style.display = (tab === "type") ? "" : "none";
+  document.getElementById("dt-transcript").style.display = tab === "transcript" ? "" : "none";
+  // 当切到"按类型"时，同时显示主推品的话术
+  if (tab === "type" && document.getElementById("dt-analysis")) {
+    var analysisDiv2 = document.getElementById("dt-analysis");
+    if (analysisDiv2) {
+      // 隐藏主推品部分，只显示按类型
+      var prodSection = analysisDiv2.querySelector(".detail-grid");
+      if (prodSection) {
+        var children = prodSection.children;
+        if (children[0]) children[0].style.display = "none";
+        if (children[1]) children[1].style.display = "";
+      }
+    }
+  }
 }
 
-function showDetailTab(tab) {
-  document.getElementById("dt-tab-analysis").classList.toggle("active", tab === "analysis");
-  document.getElementById("dt-tab-transcript").classList.toggle("active", tab === "transcript");
-  document.getElementById("dt-analysis").style.display = tab === "analysis" ? "" : "none";
-  document.getElementById("dt-transcript").style.display = tab === "transcript" ? "" : "none";
+function openDetailAndShowScripts(sessionId) {
+  openDetail(sessionId);
 }
 
 // ─── 导出 ─────────────────────────────────────────────────────────────────────
