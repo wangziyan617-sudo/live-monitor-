@@ -12,13 +12,6 @@ RECORD_OUTPUT_DIR = BASE_DIR / "storage" / "videos"
 ARCHIVE_DIR = BASE_DIR / "storage" / "archive"
 DB_PATH = BASE_DIR / "storage" / "data.db"
 
-# Whisper配置
-WHISPER_MODEL = "large-v3"  # M系列芯片可以跑
-WHISPER_DEVICE = "auto"     # 自动选择 mps/cpu
-
-# Claude API
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-
 # 定时任务
 SCHEDULE_HOUR = 10
 SCHEDULE_MINUTE = 0
