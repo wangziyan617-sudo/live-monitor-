@@ -43,33 +43,7 @@ async def extract_m3u8_url(page, live_url: str) -> str | None:
     except Exception as e:
         print(f"[hls_recorder] Strategy 1 异常: {e}")
 
-    # ── Strategy 2：拦截网络请求 ────────────────────────────────────────────
-    captured_url: str | None = None
-
-    async def handle_route(route):
-        nonlocal captured_url
-        url = route.request.url
-        if ".m3u8" in url and captured_url is None:
-            captured_url = url
-            print(f"[hls_recorder] Strategy 2 捕获到 m3u8: {url[:80]}")
-        await route.continue_()
-
-    try:
-        await page.route("**/*.m3u8*", handle_route)
-        # 等待最多 8 秒让请求发出
-        await page.wait_for_timeout(8000)
-        await page.unroute("**/*.m3u8*")
-        if captured_url:
-            return captured_url
-        print("[hls_recorder] Strategy 2 未捕获到 m3u8 请求")
-    except Exception as e:
-        print(f"[hls_recorder] Strategy 2 异常: {e}")
-        try:
-            await page.unroute("**/*.m3u8*")
-        except Exception:
-            pass
-
-    # ── Strategy 3：httpx 获取页面 HTML，解析 web_stream_url ─────────────
+    # ── Strategy 3：httpx 获取页面 HTML，解析 web_stream_url（需立即录制）
     try:
         room_id_match = re.search(r"live\.douyin\.com/(\d+)", live_url)
         if not room_id_match:
@@ -103,24 +77,30 @@ async def extract_m3u8_url(page, live_url: str) -> str | None:
             html = resp.text
 
             # 从 HTML 中提取 web_stream_url（双转义 JSON：HTML 中是 \"）
-            # 优先匹配完整 URL（有内容且非 null）
-            web_stream_match = re.search(
-                r'\\"web_stream_url\\"\s*:\s*\\"([^\\"]{10,})\\"', html
+            # 优先提取 flv URL（抖音直播常用格式），其次 m3u8
+            flv_match = re.search(
+                r'\\"flv_pull_url\\"\s*:\{[^}]*?\\"([^\\"]{20,})\.flv', html
             )
-            if web_stream_match:
-                stream_url = web_stream_match.group(1)
-                if ".m3u8" in stream_url:
-                    print(f"[hls_recorder] Strategy 3 成功: {stream_url[:80]}")
-                    return stream_url
-                else:
-                    print(f"[hls_recorder] Strategy 3：web_stream_url={stream_url[:60]}（非 m3u8）")
+            if flv_match:
+                stream_url = flv_match.group(1) + ".flv"
+                print(f"[hls_recorder] Strategy 3 成功 (FLV): {stream_url[:80]}")
+                return stream_url
+
+            # 尝试直接提取 m3u8 URL
+            m3u8_match = re.search(
+                r'\\"web_stream_url\\"\s*:\s*\\"([^\\"]{10,})\.m3u8', html
+            )
+            if m3u8_match:
+                stream_url = m3u8_match.group(1) + ".m3u8"
+                print(f"[hls_recorder] Strategy 3 成功 (m3u8): {stream_url[:80]}")
+                return stream_url
+
+            # 检查是否为 null（房间未直播）
+            null_match = re.search(r'\\"web_stream_url\\"\s*:\s*null', html)
+            if null_match:
+                print("[hls_recorder] Strategy 3：web_stream_url 为空（房间可能未在直播）")
             else:
-                # 检查是否为 null（房间未直播）
-                null_match = re.search(r'\\"web_stream_url\\"\s*:\s*null', html)
-                if null_match:
-                    print("[hls_recorder] Strategy 3：web_stream_url 为空（房间可能未在直播）")
-                else:
-                    print("[hls_recorder] Strategy 3：页面无 web_stream_url 数据")
+                print("[hls_recorder] Strategy 3：页面无流数据（房间可能未在直播）")
 
     except Exception as e:
         print(f"[hls_recorder] Strategy 3 异常: {e}")
@@ -130,8 +110,9 @@ async def extract_m3u8_url(page, live_url: str) -> str | None:
 
 async def fetch_m3u8_url(competitor: dict) -> str | None:
     """
-    启动 Playwright 浏览器，加载 cookies，导航到直播间，提取 m3u8 URL。
-    返回 m3u8 URL 字符串或 None。
+    启动 Playwright 浏览器，加载 cookies，导航到直播间，提取流 URL。
+    优先通过 Strategy 2 拦截网络请求（实时有效），次用 Strategy 3 HTML 解析。
+    返回流 URL 字符串或 None。
     """
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -154,6 +135,21 @@ async def fetch_m3u8_url(competitor: dict) -> str | None:
         if not live_url:
             live_url = competitor.get("url", "")
 
+        # ── Strategy 2：先设好拦截器，再导航（捕获实时有效 URL）──────────────
+        captured_url: str | None = None
+
+        async def handle_route(route):
+            nonlocal captured_url
+            url = route.request.url
+            if (".m3u8" in url or ".flv" in url) and captured_url is None:
+                captured_url = url
+                print(f"[hls_recorder] Strategy 2 捕获到流: {url[:80]}")
+            await route.continue_()
+
+        # 先设路由处理器，再导航
+        await page.route("**/*.m3u8*", handle_route)
+        await page.route("**/stream*", handle_route)
+
         print(f"[hls_recorder] 打开直播间: {live_url}")
         try:
             await page.goto(live_url, wait_until="domcontentloaded", timeout=30000)
@@ -163,9 +159,18 @@ async def fetch_m3u8_url(competitor: dict) -> str | None:
             await browser.close()
             return None
 
-        # 等待页面初始化
-        await page.wait_for_timeout(5000)
+        # 等待流请求发出（最多 8 秒）
+        await page.wait_for_timeout(8000)
+        await page.unroute("**/*.m3u8*")
+        await page.unroute("**/stream*")
 
+        # 优先返回拦截到的 URL（最新鲜）
+        if captured_url:
+            await context.close()
+            await browser.close()
+            return captured_url
+
+        # Strategy 2 失败，尝试 Strategy 3（HTML 解析）
         m3u8_url = await extract_m3u8_url(page, live_url)
 
         await context.close()
@@ -203,6 +208,9 @@ def record_m3u8(m3u8_url: str, competitor: dict, duration: int = 120) -> Path | 
                     "-c", "copy",          # 不重编码，全程 remux
                     "-t", str(duration),
                     "-timeout", "30000",   # 单次操作 30s 超时（ffmpeg 内部）
+                    "-headers",
+                    "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36\r\n"
+                    "Referer: https://live.douyin.com/\r\n",
                     str(output_path),
                 ],
                 capture_output=True,
@@ -210,10 +218,10 @@ def record_m3u8(m3u8_url: str, competitor: dict, duration: int = 120) -> Path | 
             )
             if proc.returncode != 0:
                 stderr = proc.stderr.decode("utf-8", errors="replace")
-                # 常见的暂时性错误：network timeout、connection reset → 重试
+                # 常见的暂时性错误：network timeout、connection reset、403 → 重试
                 retryable = any(kw in stderr for kw in [
                     "Connection timed out", "Connection reset", "Server returned 5",
-                    "End of file", "Invalid data found",
+                    "Server returned 403", "End of file", "Invalid data found",
                 ])
                 if retryable and attempt == 0:
                     last_exc = RuntimeError(f"ffmpeg retryable error: {stderr[:200]}")
