@@ -613,25 +613,40 @@ function buildCard(s) {
   if (!a) return "";
   const time = fmtTime(s.recorded_at);
   const products = renderProducts(a.key_products);
-  const highlights = a.highlights.map(h => `<div class="highlight-item">• ${escHtml(h)}</div>`).join("") ||
+
+  // 话术类型统计
+  const groups = groupScriptsByType(a.sales_scripts || []);
+  const scriptSummary = groups.map(function(g) {
+    var label = SCRIPT_TYPE_LABELS[g.type] || g.type;
+    return '<span class="badge" style="margin:2px;cursor:pointer" onclick="openDetailAndShowScripts(' + s.id + ')">' + escHtml(label) + '×' + g.scripts.length + '</span>';
+  }).join("") || '<span style="color:var(--text-3);font-size:12px">暂无</span>';
+
+  // 转写预览（前120字）
+  var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
+  var transcriptPreview = "";
+  if (t && t.full_text) {
+    var firstLine = t.full_text.split("\n").filter(function(l) { return l.trim(); })[0] || "";
+    var previewText = t.full_text.replace(/^\[[^\]]+\]\s*/gm, "").replace(/\n/g, " ").slice(0, 100);
+    transcriptPreview = '<div style="margin-top:10px;font-size:12px;color:var(--text-3);font-style:italic;line-height:1.5">' + escHtml(previewText) + (t.full_text.length > 100 ? "…" : "") + '</div>';
+  }
+
+  const highlights = a.highlights.map(h => '<div class="highlight-item">• ' + escHtml(h) + '</div>').join("") ||
     '<div style="color:var(--text-3);font-size:13px">暂无</div>';
-  return `
-    <div class="competitor-card">
-      <div class="competitor-name">${escHtml(s.competitor)}</div>
-      <div class="competitor-meta">${time}</div>
-      <div class="section-label">主推品</div>
-      ${products}
-      <div class="section-label">用户画像</div>
-      <div class="persona-text">${escHtml(a.user_persona || "暂无")}</div>
-      <div class="section-label">话术策略</div>
-      <div class="strategy-text">${escHtml(a.strategy_summary || "暂无")}</div>
-      <div class="section-label">Highlights</div>
-      ${highlights}
-      <div style="margin-top:12px">
-        <button class="btn btn-sm" onclick="openDetail(${s.id})">查看详情 ▸</button>
-      </div>
-    </div>
-  `;
+  return '<div class="competitor-card">' +
+    '<div class="competitor-name">' + escHtml(s.competitor) + '</div>' +
+    '<div class="competitor-meta">' + time + ' · ' + (s.duration ? Math.round(s.duration/60) + '分钟' : '—') + '</div>' +
+    '<div class="section-label">主推品</div>' + products +
+    '<div class="section-label">话术片段（按类型）</div>' +
+    '<div style="margin-bottom:4px">' + scriptSummary + '</div>' +
+    transcriptPreview +
+    '<div class="section-label">用户画像</div><div class="persona-text">' + escHtml(a.user_persona || "暂无") + '</div>' +
+    '<div class="section-label">话术策略</div><div class="strategy-text">' + escHtml(a.strategy_summary || "暂无") + '</div>' +
+    '<div class="section-label">Highlights</div>' + highlights +
+    '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn btn-sm" onclick="openDetail(' + s.id + ')">查看详情 ▸</button>' +
+    '<button class="btn btn-sm" onclick="openDetail(' + s.id + ');showDetailTab(\'transcript\')">完整转写</button>' +
+    '</div>' +
+    '</div>';
 }
 
 function renderProducts(kps) {
@@ -669,49 +684,42 @@ function renderSessions() {
   const status = document.getElementById("fSessStatus").value;
   const kw = document.getElementById("fSessSearch").value.trim().toLowerCase();
 
-  let rows = [...ALL.sessions];
-  if (compId) rows = rows.filter(s => s.competitor_id === compId);
-  if (date) rows = rows.filter(s => s.recorded_at.startsWith(date));
-  if (status) rows = rows.filter(s => s.status === status);
-  if (kw) rows = rows.filter(s => s.competitor.includes(kw));
+  let rows = ALL.sessions.slice();
+  if (compId) rows = rows.filter(function(s) { return s.competitor_id === compId; });
+  if (date) rows = rows.filter(function(s) { return s.recorded_at.startsWith(date); });
+  if (status) rows = rows.filter(function(s) { return s.status === status; });
+  if (kw) rows = rows.filter(function(s) { return s.competitor.toLowerCase().indexOf(kw) !== -1; });
 
   if (!rows.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
 
   const today = new Date().toISOString().slice(0, 10);
+  var tbodyHtml = '';
+  rows.forEach(function(s) {
+    var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
+    var textPreview = '<span style="color:var(--text-3);font-size:12px">—</span>';
+    if (t && t.full_text) {
+      var cleanText = t.full_text.replace(/^\[[^\]]+\]\s*/gm, "").replace(/\n+/g, " ").trim();
+      var preview = cleanText.slice(0, 100);
+      textPreview = '<span style="font-size:12px;color:#666;cursor:pointer" onclick="openDetail(' + s.id + ');showDetailTab(\'transcript\')">' + escHtml(preview) + (cleanText.length > 100 ? "…" : "") + '</span>';
+    }
+    var day = s.recorded_at.slice(0, 10);
+    var isToday = day === today;
+    tbodyHtml += '<tr>' +
+      '<td><b>' + escHtml(s.competitor) + '</b></td>' +
+      '<td>' + (isToday ? "<b>" : "") + day + (isToday ? " 📺" : "") + '</td>' +
+      '<td>' + s.recorded_at.slice(11, 16) + '</td>' +
+      '<td>' + (s.duration ? Math.round(s.duration / 60) + "分钟" : "—") + '</td>' +
+      '<td><span class="badge-status ' + (STATUS_CLASS[s.status] || "") + '">' + (STATUS_LABEL[s.status] || s.status) + '</span></td>' +
+      '<td style="max-width:280px">' + textPreview + '</td>' +
+      '<td>' + (s.status === "analyzed" ? '<button class="btn btn-sm pri" onclick="openDetail(' + s.id + ')">分析详情</button>' : "—") + '</td>' +
+      '</tr>';
+  });
 
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-title">共 ${rows.length} 条记录</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>账号</th><th>日期</th><th>时间</th><th>时长</th><th>状态</th><th>话术文本</th><th>操作</th>
-          </tr></thead>
-          <tbody>
-            ${rows.map(s => {
-              const t = ALL.transcripts.find(t => t.session_id === s.id);
-              const archiveLink = t && t.archive_path
-                ? `<a class="archive-link" href="${escHtml(t.archive_path)}" target="_blank">📄 查看文本</a>`
-                : '<span style="color:var(--text-3);font-size:12px">—</span>';
-              const day = s.recorded_at.slice(0, 10);
-              const isToday = day === today;
-              return `
-                <tr>
-                  <td><b>${escHtml(s.competitor)}</b></td>
-                  <td>${isToday ? "<b>" : ""}${day}${isToday ? " 📺" : ""}</td>
-                  <td>${s.recorded_at.slice(11, 16)}</td>
-                  <td>${s.duration ? Math.round(s.duration / 60) + "分钟" : "—"}</td>
-                  <td><span class="badge-status ${STATUS_CLASS[s.status] || ""}">${STATUS_LABEL[s.status] || s.status}</span></td>
-                  <td>${archiveLink}</td>
-                  <td>${s.status === "analyzed" ? `<button class="btn btn-sm pri" onclick="openDetail(${s.id})">分析详情</button>` : "—"}</td>
-                </tr>
-              `;
-            }).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  el.innerHTML = '<div class="card">' +
+    '<div class="card-title">共 ' + rows.length + ' 条记录（点击文本预览可打开完整转写）</div>' +
+    '<div class="table-wrap"><table>' +
+    '<thead><tr><th>账号</th><th>日期</th><th>时间</th><th>时长</th><th>状态</th><th>转写预览</th><th>操作</th></tr></thead>' +
+    '<tbody>' + tbodyHtml + '</tbody></table></div></div>';
 }
 
 // ─── 竞品动态 ─────────────────────────────────────────────────────────────────
@@ -811,59 +819,143 @@ function renderMarket() {
 }
 
 // ─── 详情面板 ─────────────────────────────────────────────────────────────────
+
+// 话术类型中文映射和顺序
+var SCRIPT_TYPE_ORDER = [
+  "暖场破冰", "开场白", "痛点/需求唤醒", "痛点需求唤醒",
+  "价值塑造", "产品介绍", "效果承诺",
+  "信任背书", "社会认同", "比喻说服",
+  "促销逼单", "服务保障", "催单话术",
+  "结尾收束", "FAQ答疑",
+];
+var SCRIPT_TYPE_LABELS = {
+  "痛点/需求唤醒": "痛点唤醒", "痛点需求唤醒": "痛点唤醒",
+  "暖场破冰": "暖场破冰", "开场白": "开场白",
+  "价值塑造": "价值塑造", "产品介绍": "产品介绍",
+  "效果承诺": "效果承诺", "信任背书": "信任背书",
+  "社会认同": "社会认同", "比喻说服": "比喻说服",
+  "促销逼单": "促销逼单", "服务保障": "服务保障",
+  "催单话术": "催单话术", "结尾收束": "结尾收束",
+  "FAQ答疑": "FAQ答疑",
+};
+
+function groupScriptsByType(scripts) {
+  var groups = {};
+  scripts.forEach(function(sc) {
+    var t = sc.type || "其他";
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(sc);
+  });
+  // 按固定顺序排序
+  var ordered = [];
+  SCRIPT_TYPE_ORDER.forEach(function(t) {
+    if (groups[t]) { ordered.push({ type: t, scripts: groups[t] }); delete groups[t]; }
+  });
+  Object.keys(groups).forEach(function(t) { ordered.push({ type: t, scripts: groups[t] }); });
+  return ordered;
+}
+
+function renderScriptGroups(scripts) {
+  if (!scripts || !scripts.length) return '<div style="color:var(--text-3);font-size:13px">暂无话术片段</div>';
+  var groups = groupScriptsByType(scripts);
+  var html = '';
+  groups.forEach(function(g) {
+    var label = SCRIPT_TYPE_LABELS[g.type] || g.type;
+    var badgeColor = g.type.indexOf("痛点") !== -1 ? "o" :
+                     g.type.indexOf("逼单") !== -1 || g.type.indexOf("催单") !== -1 ? "r" :
+                     g.type.indexOf("价值") !== -1 || g.type.indexOf("产品") !== -1 ? "g" : "";
+    html += '<div style="margin-bottom:16px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #eee">';
+    html += '<span class="badge ' + badgeColor + '" style="font-size:13px;font-weight:600;padding:2px 10px">' + escHtml(label) + '</span>';
+    html += '<span style="font-size:12px;color:var(--text-3)">' + g.scripts.length + '条</span>';
+    html += '</div>';
+    g.scripts.forEach(function(sc) {
+      html += '<div class="script-item" style="margin-bottom:6px">';
+      if (sc.timestamp) {
+        html += '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">';
+        html += '<span class="badge" style="font-size:11px;flex-shrink:0">' + escHtml(sc.timestamp) + '</span>';
+        html += '</div>';
+      }
+      html += '<div class="script-content">' + escHtml(sc.content || "") + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  return html;
+}
+
+function renderTranscript(text) {
+  if (!text) return '<div class="empty">暂无转写文本</div>';
+  var tocHtml = "";
+  var lines = text.split("\n");
+  var entries = [];
+  lines.forEach(function(line) {
+    var m = line.match(/^\[(\d{2}:\d{2})\s*-->\s*(\d{2}:\d{2})\]\s*(.+)/);
+    if (m) {
+      entries.push({ start: m[1], end: m[2], content: m[3].trim() });
+    }
+  });
+  if (entries.length === 0) {
+    return '<div class="transcript-box">' + escHtml(text) + '</div>';
+  }
+  entries.forEach(function(e, idx) {
+    tocHtml += '<a href="#tseg' + idx + '" style="display:inline-block;background:#f0f5ff;color:var(--blue);border-radius:4px;padding:1px 8px;font-size:12px;margin:2px;text-decoration:none">' + escHtml(e.start) + '</a>';
+  });
+  var bodyHtml = '<div style="margin-bottom:16px;padding:10px;background:#fafafa;border-radius:6px;font-size:12px;color:var(--text-2)">时间导航：' + tocHtml + '</div>';
+  bodyHtml += '<div class="transcript-box">';
+  entries.forEach(function(e, idx) {
+    bodyHtml += '<div id="tseg' + idx + '" style="margin-bottom:8px;line-height:1.7">';
+    bodyHtml += '<span style="color:var(--blue);font-weight:600;flex-shrink:0;margin-right:8px">' + escHtml(e.start) + '</span>';
+    bodyHtml += '<span style="color:#333">' + escHtml(e.content) + '</span>';
+    bodyHtml += '</div>';
+  });
+  bodyHtml += '</div>';
+  return bodyHtml;
+}
+
 function openDetail(sessionId) {
-  const panel = document.getElementById("detailPanel");
-  const s = ALL.sessions.find(x => x.id === sessionId);
-  const a = ALL.analyses.find(x => x.session_id === sessionId);
-  const t = ALL.transcripts.find(x => x.session_id === sessionId);
+  var panel = document.getElementById("detailPanel");
+  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
+  var a = ALL.analyses.find(function(x) { return x.session_id === sessionId; });
+  var t = ALL.transcripts.find(function(x) { return x.session_id === sessionId; });
   if (!a) { panel.innerHTML = '<div class="err-panel">暂无分析数据</div>'; panel.classList.add("open"); return; }
 
-  const products = renderProducts(a.key_products);
-  const scripts = (a.sales_scripts || []).map(sc => `
-    <div class="script-item">
-      <div class="script-type">${escHtml(sc.type || "")}</div>
-      <div class="script-content">${escHtml(sc.content || "")}</div>
-      ${sc.timestamp ? `<div class="script-ts">${escHtml(sc.timestamp)}</div>` : ""}
-    </div>
-  `).join("") || '<div style="color:var(--text-3)">暂无</div>';
-  const highlights = a.highlights.map(h => `<div class="highlight-item">• ${escHtml(h)}</div>`).join("");
-  const transcript = t ? `<div class="transcript-box">${escHtml(t.full_text)}</div>` : '<div class="empty">暂无转写文本</div>';
+  var products = renderProducts(a.key_products);
+  var scriptGroups = renderScriptGroups(a.sales_scripts || []);
+  var highlights = a.highlights.map(function(h) { return '<div class="highlight-item">• ' + escHtml(h) + '</div>'; }).join("");
+  var transcriptHtml = t ? renderTranscript(t.full_text) : '<div class="empty">暂无转写文本</div>';
 
-  panel.innerHTML = `
-    <div class="detail-header">
-      <div class="detail-title">${escHtml(s.competitor)} · ${fmtDate(s.recorded_at)}</div>
-      <button class="btn" onclick="closeDetail()">关闭</button>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="tab active" id="dt-tab-analysis" onclick="showDetailTab('analysis')">分析详情</button>
-      <button class="tab" id="dt-tab-transcript" onclick="showDetailTab('transcript')">完整转写</button>
-    </div>
-    <div id="dt-analysis">
-      <div class="detail-grid">
-        <div>
-          <div class="section-label">主推品</div>
-          ${products}
-          <div class="section-label" style="margin-top:16px">用户画像</div>
-          <div class="persona-text">${escHtml(a.user_persona || "暂无")}</div>
-          <div class="section-label" style="margin-top:16px">话术策略</div>
-          <div class="strategy-text">${escHtml(a.strategy_summary || "暂无")}</div>
-          <div class="section-label" style="margin-top:16px">Highlights</div>
-          ${highlights || '<div style="color:var(--text-3)">暂无</div>'}
-        </div>
-        <div>
-          <div class="section-label">话术片段</div>
-          ${scripts}
-        </div>
-      </div>
-    </div>
-    <div id="dt-transcript" style="display:none">${transcript}</div>
-  `;
+  panel.innerHTML = '<div class="detail-header">' +
+    '<div class="detail-title">' + escHtml(s.competitor) + ' · ' + fmtDate(s.recorded_at) + ' · ' + (s.duration ? Math.round(s.duration/60) + '分钟' : '') + '</div>' +
+    '<button class="btn" onclick="closeDetail()">关闭</button>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+    '<button class="tab active" id="dt-tab-analysis" onclick="showDetailTab(\'analysis\')">分析详情</button>' +
+    '<button class="tab" id="dt-tab-transcript" onclick="showDetailTab(\'transcript\')">完整转写</button>' +
+    '</div>' +
+    '<div id="dt-analysis">' +
+    '<div class="detail-grid">' +
+    '<div>' +
+    '<div class="section-label">主推品</div>' + products +
+    '<div class="section-label" style="margin-top:16px">用户画像</div><div class="persona-text">' + escHtml(a.user_persona || "暂无") + '</div>' +
+    '<div class="section-label" style="margin-top:16px">话术策略</div><div class="strategy-text">' + escHtml(a.strategy_summary || "暂无") + '</div>' +
+    '<div class="section-label" style="margin-top:16px">Highlights</div>' + (highlights || '<div style="color:var(--text-3)">暂无</div>') +
+    '</div>' +
+    '<div>' +
+    '<div class="section-label">话术片段（按类型分组）</div>' + scriptGroups +
+    '</div>' +
+    '</div></div>' +
+    '<div id="dt-transcript" style="display:none">' + transcriptHtml + '</div>';
   panel.classList.add("open");
   panel.scrollIntoView({ behavior: "smooth" });
 }
 
 function closeDetail() {
   document.getElementById("detailPanel").classList.remove("open");
+}
+
+function openDetailAndShowScripts(sessionId) {
+  openDetail(sessionId);
 }
 
 function showDetailTab(tab) {
