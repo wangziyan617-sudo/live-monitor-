@@ -16,6 +16,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 sys.path.insert(0, str(Path(__file__).parent))
 from config.settings import COMPETITORS, SCHEDULE_HOUR, SCHEDULE_MINUTE, RECORD_DURATION_SECONDS
 from crawler.recorder import record_live_room
+from crawler.hls_recorder import fetch_m3u8_url, record_m3u8
 from transcriber.whisper_transcribe import transcribe_video
 from analyzer.claude_analyze import analyze_transcript
 from storage.db import (
@@ -42,9 +43,26 @@ async def process_competitor(competitor: dict, duration: int):
         url=competitor.get("url", ""),
     )
 
-    # Step 1: 录制
-    video_path = await record_live_room(competitor, duration=duration)
+    # Step 1: 录制（HLS 优先，失败时降级到屏幕录制）
+    video_path: Path | None = None
+
+    # 优先：尝试 HLS 流录制
+    if competitor.get("live_url"):
+        try:
+            m3u8_url = await fetch_m3u8_url(competitor)
+            if m3u8_url:
+                video_path = record_m3u8(m3u8_url, competitor, duration=duration)
+        except Exception as e:
+            print(f"[scheduler] HLS 录制异常: {e}")
+
+    # 降级：HLS 失败，使用原有屏幕录制
     if not video_path:
+        print("[scheduler] HLS 失败，回退到屏幕录制")
+        video_path = await record_live_room(competitor, duration=duration)
+
+    if not video_path:
+        print(f"[scheduler] {name} 未在直播或录制失败，跳过")
+        return
         print(f"[scheduler] {name} 未在直播或录制失败，跳过")
         return
 
