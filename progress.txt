@@ -19,4 +19,18 @@
   - httpx raises `HTTPStatusError` (not just HTTPError) on non-2xx, caught with `except httpx.HTTPStatusError`
   - Store provider name in a variable so the final log prints which API succeeded
   - Groq key checked lazily at fallback time (not upfront) so MiniMax-only environments still work
+  - Douyin room_id can be extracted from URL pathname: `location.pathname.match(/\/live\/(\d+)/)` — more reliable than parsing __NEXT_DATA__ scripts
+  - Use `page.route("**/*.m3u8*", handler)` then `await page.wait_for_timeout()` to capture intercepts — route stays active during the wait
+  - Always `unroute()` in a try/except finally pattern to avoid leaking route handlers
+
+---
+
+## 2026-04-12 - US-009
+- What was implemented: Created `crawler/hls_recorder.py` with three m3u8 extraction strategies (video.src read, route interception, Douyin internal API). Reuses douyin_cookies.json from same path as recorder.py.
+- Files changed: `crawler/hls_recorder.py` (new file)
+- **Learnings for future iterations:**
+  - Douyin live room URL pattern: `https://live.douyin.com/{room_id}` — room_id also appears in page scripts
+  - Douyin stream API: `https://www.douyin.com/aweme/v1/web/room/feed/?room_id=...&device_platform=webapp&aid=6383` returns JSON with `stream_url.hls_pull_url.HD`
+  - Strategy 2 route handler must `await route.continue_()` or requests hang — don't just abort
+  - headless=True is fine for m3u8 extraction (no video rendering needed, unlike x11grab recording)
 
