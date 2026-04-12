@@ -76,6 +76,18 @@
 - **Learnings for future iterations:**
   - Always delete after data is safely persisted, never before
   - Cleanup failure should never raise — wrap in try/except, log and continue
+  - `ffprobe -select_streams a -show_entries stream=codec_type` is the correct way to verify audio presence in a file
+  - ffmpeg `-timeout` flag is in microseconds (not seconds) — use subprocess timeout wrapper instead for easier semantics
+  - Retryable ffmpeg errors: "Connection timed out", "Connection reset", "Server returned 5", "End of file"
+
+---
+
+## 2026-04-12 - US-010
+- What was implemented: Added `record_m3u8()` function to `crawler/hls_recorder.py` using ffmpeg -c copy; max 1 retry on retryable errors; ffprobe audio verification.
+- Files changed: `crawler/hls_recorder.py`
+- **Learnings for future iterations:**
+  - ffmpeg `-timeout` argument is in microseconds in libavformat — use Python `subprocess.run(timeout=...)` wrapper instead
+  - Check stderr for retryable keywords rather than just returncode
 
 ---
 
