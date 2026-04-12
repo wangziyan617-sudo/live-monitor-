@@ -2,7 +2,7 @@ name: 每日直播间监控
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 北京时间 10:00（UTC+8，所以 UTC 02:00）
+    - cron: '0 3 * * *'  # 北京时间 11:00（UTC+8，所以 UTC 03:00）
   workflow_dispatch:       # 支持手动触发
     inputs:
       duration:
