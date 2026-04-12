@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>竞品直播间监控看板</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue: #1677ff;
+  --blue-dark: #0958d9;
+  --green: #52c41a;
+  --orange: #fa8c16;
+  --red: #f5222d;
+  --bg: #f0f2f5;
+  --card-bg: #fff;
+  --border: #e8e8e8;
+  --text: #1a1a1a;
+  --text-2: #666;
+  --text-3: #999;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+a { color: var(--blue); text-decoration: none; }
+a:hover { color: var(--blue-dark); }
+
+/* Header */
+header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+header h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+.header-meta { font-size: 12px; color: var(--text-3); margin-left: 8px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.container { max-width: 1440px; margin: 0 auto; padding: 20px 24px; }
+
+/* Stats bar */
+.stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--card-bg); border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.stat-num { font-size: 28px; font-weight: 700; color: var(--blue); }
+.stat-num.green { color: var(--green); }
+.stat-num.orange { color: var(--orange); }
+.stat-label { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+.tab { padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--text-2); border: 1px solid var(--border); background: var(--card-bg); transition: all .15s; }
+.tab:hover { border-color: var(--blue); color: var(--blue); }
+.tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* Filters */
+.filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; background: var(--card-bg); padding: 14px 16px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.filters label { font-size: 13px; color: var(--text-2); font-weight: 500; }
+.filters select, .filters input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+.filters select:focus, .filters input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
+.filters input[type="search"] { min-width: 180px; }
+.filters .export-btns { margin-left: auto; display: flex; gap: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer; font-size: 13px; color: var(--text); transition: all .15s; }
+.btn:hover { border-color: var(--blue); color: var(--blue); }
+.btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn-primary:hover { background: var(--blue-dark); }
+
+/* Cards */
+.card { background: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; }
+
+/* Compare grid */
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+.competitor-card { background: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); border-top: 3px solid var(--blue); transition: box-shadow .15s; }
+.competitor-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+.competitor-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.competitor-time { font-size: 11px; color: var(--text-3); margin-bottom: 14px; }
+.section-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .6px; margin: 14px 0 6px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.tag { display: inline-block; background: #f0f5ff; color: var(--blue); border-radius: 4px; padding: 2px 8px; font-size: 12px; margin: 2px; }
+.tag.green { background: #f6ffed; color: var(--green); }
+.tag.orange { background: #fff7e6; color: var(--orange); }
+.highlight-item { font-size: 13px; color: var(--text-2); padding: 4px 0; line-height: 1.5; border-bottom: 1px dashed #f0f0f0; }
+.highlight-item:last-child { border-bottom: none; }
+.persona-text, .strategy-text { font-size: 13px; color: #444; line-height: 1.7; }
+.strategy-text { background: #fafafa; padding: 10px 12px; border-radius: 6px; }
+
+/* Product item */
+.product-item { border: 1px solid #f0f0f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+.product-name { font-weight: 600; font-size: 14px; }
+.product-price { color: var(--red); font-size: 13px; margin: 3px 0; }
+.product-points { font-size: 12px; color: #666; line-height: 1.5; }
+
+/* Sessions table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; padding: 10px 12px; background: #fafafa; border-bottom: 2px solid #f0f0f0; color: var(--text-2); font-weight: 500; font-size: 13px; white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+tr:hover td { background: #fafafa; }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+.s-analyzed { background: #f6ffed; color: var(--green); }
+.s-transcribed { background: #e6f7ff; color: var(--blue); }
+.s-recorded { background: #fff7e6; color: var(--orange); }
+
+/* Detail panel */
+.detail-panel { display: none; background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.1); padding: 24px; margin-bottom: 16px; }
+.detail-panel.open { display: block; animation: slideDown .2s ease; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+.detail-title { font-size: 18px; font-weight: 700; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
+.script-item { background: #fafafa; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid var(--blue); }
+.script-type { font-size: 11px; color: var(--blue); font-weight: 600; margin-bottom: 4px; }
+.script-content { font-size: 13px; color: #333; line-height: 1.6; }
+.script-ts { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+/* Transcript */
+.transcript-box { background: #fafafa; border-radius: 8px; padding: 16px; font-size: 13px; line-height: 1.8; color: #444; max-height: 500px; overflow-y: auto; white-space: pre-wrap; font-family: ui-monospace, monospace; }
+
+/* Empty / Loading */
+.empty { text-align: center; padding: 60px 20px; color: var(--text-3); font-size: 14px; }
+.loading { text-align: center; padding: 40px; color: var(--text-3); font-size: 14px; }
+.loading::after { content: ''; animation: spin 1s linear infinite; }
+@keyframes spin { to { content: ''; transform: rotate(360deg); } }
+
+/* Footer */
+footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3); }
+footer a { color: var(--blue); }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .container { padding: 12px; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .header-right { margin-left: 0; width: 100%; justify-content: flex-end; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>竞品直播间监控 <span class="header-meta" id="siteMeta"></span></h1>
+  <div class="header-right">
+    <span style="font-size:12px;color:var(--text-3)" id="lastUpdate"></span>
+    <button class="btn" onclick="location.reload()">刷新数据</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- 统计概览 -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="stat-num" id="statCompetitors">-</div><div class="stat-label">竞品账号</div></div>
+    <div class="stat-card"><div class="stat-num green" id="statSessions">-</div><div class="stat-label">采集场次</div></div>
+    <div class="stat-card"><div class="stat-num" id="statAnalyzed">-</div><div class="stat-label">已分析</div></div>
+    <div class="stat-card"><div class="stat-num orange" id="statDays">-</div><div class="stat-label">覆盖天数</div></div>
+  </div>
+
+  <!-- 标签页 -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('compare')">横向对比</div>
+    <div class="tab" onclick="switchTab('sessions')">历史记录</div>
+    <div class="tab" onclick="switchTab('about')">说明</div>
+  </div>
+
+  <!-- 横向对比 -->
+  <div id="tab-compare">
+    <div class="filters">
+      <label>日期</label>
+      <select id="filterDate" onchange="renderCompare()">
+        <option value="">全部日期</option>
+      </select>
+      <label>搜索</label>
+      <input type="search" id="filterSearch" placeholder="搜索竞品/商品/话术…" oninput="renderCompare()" />
+      <div class="export-btns">
+        <button class="btn" onclick="exportJSON()">📥 JSON</button>
+        <button class="btn" onclick="exportCSV()">📥 CSV</button>
+      </div>
+    </div>
+    <div id="compareContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- 历史记录 -->
+  <div id="tab-sessions" style="display:none">
+    <div class="filters">
+      <label>账号</label>
+      <select id="filterComp" onchange="renderSessions()">
+        <option value="">全部</option>
+      </select>
+      <label>状态</label>
+      <select id="filterStatus" onchange="renderSessions()">
+        <option value="">全部</option>
+        <option value="analyzed">已分析</option>
+        <option value="transcribed">已转写</option>
+        <option value="recorded">已录制</option>
+      </select>
+      <label>搜索</label>
+      <input type="search" id="filterSearchSession" placeholder="搜索…" oninput="renderSessions()" />
+    </div>
+    <div id="sessionsContent"><div class="loading">加载中…</div></div>
+    <div id="detailPanel" class="detail-panel"></div>
+  </div>
+
+  <!-- 说明 -->
+  <div id="tab-about" style="display:none">
+    <div class="card">
+      <h2 style="font-size:16px;margin-bottom:12px">数据说明</h2>
+      <p style="font-size:13px;color:#666;line-height:1.8;margin-bottom:16px">
+        本看板展示竞品抖音直播间的每日监控数据，包括主推课程商品、话术策略、用户画像等分析结果。
+        数据由 GitHub Actions 每天北京时间 11:00 自动采集更新。
+      </p>
+      <h3 style="font-size:14px;margin-bottom:8px">字段说明</h3>
+      <ul style="font-size:13px;color:#666;line-height:2;padding-left:20px">
+        <li><b>主推品</b>：直播间重点推广的课程产品及卖点</li>
+        <li><b>话术策略</b>：主播的核心转化逻辑和痛点设计</li>
+        <li><b>用户画像</b>：目标家长群体的特征描述</li>
+        <li><b>Highlights</b>：值得关注的差异化亮点</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<footer>
+  数据来源：抖音直播间自动录制转写 · <a href="https://github.com/wangziyan617-sudo/live-monitor-" target="_blank">GitHub</a>
+</footer>
+
+<script>
+// ─── 全局数据 ───
+let ALL_DATA = { competitors: [], sessions: [], analyses: [], compare: { dates: [], latest_day: "", competitors_on_day: [] } };
+let currentTab = 'compare';
+
+// ─── 初始化 ───
+async function init() {
+  const [comp, sess, analy, compData] = await Promise.all([
+    fetch('data/competitors.json').then(r => r.json()),
+    fetch('data/sessions.json').then(r => r.json()),
+    fetch('data/analyses.json').then(r => r.json()),
+    fetch('data/compare.json').then(r => r.json()),
+  ]);
+  ALL_DATA = { competitors: comp, sessions: sess, analyses: analy, compare: compData };
+
+  document.getElementById('siteMeta').textContent = `共 ${comp.length} 个竞品`;
+  document.getElementById('lastUpdate').textContent = '数据更新: ' + new Date().toLocaleString('zh-CN');
+
+  // 统计
+  const analyzed = sess.filter(s => s.status === 'analyzed').length;
+  const days = compData.dates.length;
+  document.getElementById('statCompetitors').textContent = comp.length;
+  document.getElementById('statSessions').textContent = sess.length;
+  document.getElementById('statAnalyzed').textContent = analyzed;
+  document.getElementById('statDays').textContent = days;
+
+  // 日期选择器
+  const dateSel = document.getElementById('filterDate');
+  compData.dates.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d;
+    o.textContent = d;
+    if (d === compData.latest_day) o.selected = true;
+    dateSel.appendChild(o);
+  });
+
+  // 账号过滤器
+  const compSel = document.getElementById('filterComp');
+  comp.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = c.name;
+    compSel.appendChild(o);
+  });
+
+  renderCompare();
+}
+
+// ─── 标签切换 ───
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const tabs = ['compare','sessions','about'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.getElementById('tab-compare').style.display = tab === 'compare' ? '' : 'none';
+  document.getElementById('tab-sessions').style.display = tab === 'sessions' ? '' : 'none';
+  document.getElementById('tab-about').style.display = tab === 'about' ? '' : 'none';
+  if (tab === 'sessions') renderSessions();
+}
+
+// ─── 横向对比 ───
+function renderCompare() {
+  const el = document.getElementById('compareContent');
+  const selectedDate = document.getElementById('filterDate').value;
+  const keyword = document.getElementById('filterSearch').value.trim().toLowerCase();
+
+  // 构建当天数据
+  let sessions = ALL_DATA.sessions.filter(s => s.status === 'analyzed');
+  if (selectedDate) sessions = sessions.filter(s => s.recorded_at.startsWith(selectedDate));
+
+  if (sessions.length === 0) {
+    el.innerHTML = '<div class="empty">该条件下暂无分析数据</div>';
+    return;
+  }
+
+  const cards = sessions.map(s => {
+    const analysis = ALL_DATA.analyses.find(a => a.session_id === s.id);
+    if (!analysis) return null;
+
+    // 关键词过滤
+    if (keyword) {
+      const hay = JSON.stringify({
+        name: s.competitor,
+        products: analysis.key_products.map(p => p.name + ' ' + (p.selling_points||[]).join(' ')),
+        persona: analysis.user_persona,
+        strategy: analysis.strategy_summary,
+        highlights: analysis.highlights,
+      }).toLowerCase();
+      if (!hay.includes(keyword)) return null;
+    }
+
+    return buildCompareCard(s, analysis);
+  }).filter(Boolean);
+
+  if (cards.length === 0) {
+    el.innerHTML = '<div class="empty">没有匹配「' + escHtml(keyword) + '」的结果</div>';
+    return;
+  }
+
+  el.innerHTML = `<div class="compare-grid">${cards.join('')}</div>`;
+}
+
+function buildCompareCard(s, a) {
+  const products = a.key_products.map(p => `
+    <div class="product-item">
+      <div class="product-name">${escHtml(p.name || '')}</div>
+      ${p.price ? '<div class="product-price">¥' + escHtml(p.price) + '</div>' : ''}
+      <div class="product-points">${(p.selling_points||[]).map(sp => escHtml(sp)).join(' · ')}</div>
+    </div>
+  `).join('') || '<div style="color:var(--text-3);font-size:13px">暂无商品</div>';
+
+  const highlights = a.highlights.map(h => `<div class="highlight-item">· ${escHtml(h)}</div>`).join('') ||
+    '<div style="color:var(--text-3);font-size:13px">暂无</div>';
+
+  const time = new Date(s.recorded_at).toLocaleString('zh-CN', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  return `
+    <div class="competitor-card">
+      <div class="competitor-name">${escHtml(s.competitor)}</div>
+      <div class="competitor-time">${time}</div>
+      <div class="section-label">主推品</div>
+      ${products}
+      <div class="section-label">用户画像</div>
+      <div class="persona-text">${escHtml(a.user_persona || '暂无')}</div>
+      <div class="section-label">话术策略</div>
+      <div class="strategy-text">${escHtml(a.strategy_summary || '暂无')}</div>
+      <div class="section-label">Highlights</div>
+      ${highlights}
+    </div>
+  `;
+}
+
+// ─── 历史记录 ───
+function renderSessions() {
+  const el = document.getElementById('sessionsContent');
+  const compId = parseInt(document.getElementById('filterComp').value) || 0;
+  const status = document.getElementById('filterStatus').value;
+  const kw = document.getElementById('filterSearchSession').value.trim().toLowerCase();
+
+  let rows = [...ALL_DATA.sessions];
+  if (compId) rows = rows.filter(s => s.competitor_id === compId);
+  if (status) rows = rows.filter(s => s.status === status);
+  if (kw) rows = rows.filter(s => s.competitor.toLowerCase().includes(kw));
+
+  if (rows.length === 0) {
+    el.innerHTML = '<div class="empty">暂无记录</div>';
+    return;
+  }
+
+  const statusLabel = { recorded: '已录制', transcribed: '已转写', analyzed: '已分析' };
+  const statusClass = { recorded: 's-recorded', transcribed: 's-transcribed', analyzed: 's-analyzed' };
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>账号</th><th>录制时间</th><th>时长</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            ${rows.map(s => `
+              <tr>
+                <td><b>${escHtml(s.competitor)}</b></td>
+                <td>${new Date(s.recorded_at).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+                <td>${s.duration ? Math.round(s.duration/60)+'分钟' : '-'}</td>
+                <td><span class="status-badge ${statusClass[s.status] || ''}">${statusLabel[s.status] || s.status}</span></td>
+                <td>
+                  ${s.status === 'analyzed' ? `<button class="btn btn-primary" onclick="openDetail(${s.id})">查看分析</button>` : '-'}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ─── 详情面板 ───
+function openDetail(sessionId) {
+  const panel = document.getElementById('detailPanel');
+  panel.classList.add('open');
+  const s = ALL_DATA.sessions.find(x => x.id === sessionId);
+  const a = ALL_DATA.analyses.find(x => x.session_id === sessionId);
+  const t = ALL_DATA.transcripts ? ALL_DATA.transcripts.find(x => x.session_id === sessionId) : null;
+
+  if (!a) { panel.innerHTML = '<div class="empty">暂无分析数据</div>'; return; }
+
+  const products = a.key_products.map(p => `
+    <div class="product-item">
+      <div class="product-name">${escHtml(p.name||'')}</div>
+      ${p.price ? '<div class="product-price">¥'+escHtml(p.price)+'</div>' : ''}
+      <div class="product-points">${(p.selling_points||[]).map(sp=>escHtml(sp)).join(' · ')}</div>
+    </div>
+  `).join('') || '<div style="color:var(--text-3)">暂无</div>';
+
+  const scripts = (a.sales_scripts||[]).map(s => `
+    <div class="script-item">
+      <div class="script-type">${escHtml(s.type||'')}</div>
+      <div class="script-content">${escHtml(s.content||'')}</div>
+      ${s.timestamp ? '<div class="script-ts">'+escHtml(s.timestamp)+'</div>' : ''}
+    </div>
+  `).join('') || '<div style="color:var(--text-3)">暂无</div>';
+
+  const highlights = a.highlights.map(h => `<div class="highlight-item">· ${escHtml(h)}</div>`).join('') || '<div style="color:var(--text-3)">暂无</div>';
+  const transcript = t ? `<div class="transcript-box">${escHtml(t.full_text)}</div>` : '<div class="empty">暂无转写文本</div>';
+
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-title">${escHtml(s.competitor)} · 分析详情</div>
+      <button class="btn" onclick="document.getElementById('detailPanel').classList.remove('open')">关闭</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="tab active" id="tab-analysis-btn" onclick="showDetailTab('analysis')">分析结果</button>
+      <button class="tab" id="tab-transcript-btn" onclick="showDetailTab('transcript')">完整转写</button>
+    </div>
+    <div id="detail-analysis">
+      <div class="detail-grid">
+        <div>
+          <div class="section-label">主推品</div>
+          ${products}
+          <div class="section-label" style="margin-top:16px">用户画像</div>
+          <div class="persona-text">${escHtml(a.user_persona||'暂无')}</div>
+          <div class="section-label" style="margin-top:16px">话术策略</div>
+          <div class="strategy-text">${escHtml(a.strategy_summary||'暂无')}</div>
+          <div class="section-label" style="margin-top:16px">Highlights</div>
+          ${highlights}
+        </div>
+        <div>
+          <div class="section-label">话术片段</div>
+          ${scripts}
+        </div>
+      </div>
+    </div>
+    <div id="detail-transcript" style="display:none">${transcript}</div>
+  `;
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function showDetailTab(tab) {
+  document.getElementById('tab-analysis-btn').classList.toggle('active', tab==='analysis');
+  document.getElementById('tab-transcript-btn').classList.toggle('active', tab==='transcript');
+  document.getElementById('detail-analysis').style.display = tab==='analysis' ? '' : 'none';
+  document.getElementById('detail-transcript').style.display = tab==='transcript' ? '' : 'none';
+}
+
+// ─── 导出 ───
+function exportJSON() {
+  const selectedDate = document.getElementById('filterDate').value;
+  const keyword = document.getElementById('filterSearch').value.trim().toLowerCase();
+  let sessions = ALL_DATA.sessions.filter(s => s.status === 'analyzed');
+  if (selectedDate) sessions = sessions.filter(s => s.recorded_at.startsWith(selectedDate));
+
+  const data = sessions.map(s => {
+    const a = ALL_DATA.analyses.find(x => x.session_id === s.id);
+    return { session: s, analysis: a || null };
+  }).filter(d => d.analysis);
+
+  if (keyword) {
+    // 简单关键词过滤
+  }
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  downloadBlob(blob, `竞品直播_${selectedDate || '全部'}.json`);
+}
+
+function exportCSV() {
+  const selectedDate = document.getElementById('filterDate').value;
+  let sessions = ALL_DATA.sessions.filter(s => s.status === 'analyzed');
+  if (selectedDate) sessions = sessions.filter(s => s.recorded_at.startsWith(selectedDate));
+
+  const header = ['账号','录制时间','时长(分钟)','主推品','卖点','用户画像','话术策略','Highlights'];
+  const rows = sessions.map(s => {
+    const a = ALL_DATA.analyses.find(x => x.session_id === s.id);
+    return [
+      s.competitor,
+      s.recorded_at,
+      s.duration ? Math.round(s.duration/60) : '',
+      (a?.key_products||[]).map(p=>p.name).join('; '),
+      (a?.key_products||[]).flatMap(p=>p.selling_points||[]).join('; '),
+      a?.user_persona || '',
+      a?.strategy_summary || '',
+      (a?.highlights||[]).join('; '),
+    ];
+  });
+
+  const csv = [header, ...rows].map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8'});
+  downloadBlob(blob, `竞品直播_${selectedDate || '全部'}.csv`);
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ─── 工具 ───
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/
+/g,'<br>');
+}
+
+// ─── 启动 ───
+init().catch(console.error);
+</script>
+</body>
+</html>

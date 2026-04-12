@@ -14,12 +14,26 @@ jobs:
   monitor:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout 代码
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 配置 GitHub Pages（从 docs/ 目录发布）
+        run: |
+          # 通过 GitHub API 将 Pages source 设置为 main 分支的 /docs 目录
+          curl -s -X PUT \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/pages \
+            -d '{"build_type":"legacy","source":{"branch":"main","path":"/docs"}}'
 
       - name: 安装系统依赖
         run: |
@@ -107,11 +121,17 @@ jobs:
           RECORD_DURATION: ${{ github.event.inputs.duration || '900' }}
         run: python scheduler.py --now --duration $RECORD_DURATION
 
-      - name: 提交话术文档和数据库到仓库
+      - name: 生成静态数据文件
+        run: python generate_static.py
+
+      - name: 提交话术文档、数据库和静态页面到仓库
         run: |
           git config user.name "live-monitor-bot"
           git config user.email "bot@live-monitor"
           mkdir -p storage/archive
+          # 提交话术归档、数据库
           git add storage/archive/ storage/data.db || true
-          git diff --staged --quiet || git commit -m "📝 $(date '+%Y-%m-%d') 话术归档"
+          # 提交静态页面（docs/index.html + docs/data/*.json）
+          git add docs/ || true
+          git diff --staged --quiet || git commit -m "📝 $(date '+%Y-%m-%d') 话术归档 + 静态页面"
           git push || echo "没有新内容需要推送"
