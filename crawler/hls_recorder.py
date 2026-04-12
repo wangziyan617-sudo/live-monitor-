@@ -3,16 +3,18 @@ HLS 流录制模块：从抖音直播间提取 m3u8 直链地址并录制
 三种策略依次尝试：
   1. video.src 直接读取（video 标签上附带了流地址）
   2. page.route() 拦截网络请求，捕获第一个 .m3u8 URL
-  3. 从页面 JS 上下文调用抖音内部 web API 获取 stream_url
+  3. httpx 获取页面 HTML，解析 roomStore.roomInfo.web_stream_url
 任意一条成功即返回 m3u8 URL，三条均失败返回 None。
 """
 import json
+import re
 import subprocess
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
+import httpx
 from playwright.async_api import async_playwright
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -21,7 +23,7 @@ from config.settings import RECORD_OUTPUT_DIR
 COOKIES_PATH = Path(__file__).parent.parent / "config" / "douyin_cookies.json"
 
 
-async def extract_m3u8_url(page) -> str | None:
+async def extract_m3u8_url(page, live_url: str) -> str | None:
     """
     在已加载直播间页面的 page 上尝试三种策略提取 m3u8 URL。
     """
@@ -67,46 +69,59 @@ async def extract_m3u8_url(page) -> str | None:
         except Exception:
             pass
 
-    # ── Strategy 3：调用抖音内部 web API ───────────────────────────────────
+    # ── Strategy 3：httpx 获取页面 HTML，解析 web_stream_url ─────────────
     try:
-        # 抖音直播间通常通过 /aweme/v1/web/room/feed/ 或类似接口获取流信息
-        # 这里从页面 JS 上下文发起请求，cookie 自动跟随
-        m3u8_from_api = await page.evaluate("""async () => {
-            // 尝试从 RENDER_DATA 或 __NEXT_DATA__ 中提取 room_id
-            const getRoomId = () => {
-                // 方法1：从 URL 提取
-                const match = location.pathname.match(/\\/live\\/(\\d+)/);
-                if (match) return match[1];
-
-                // 方法2：从页面 script 标签提取
-                const scripts = document.querySelectorAll('script');
-                for (const s of scripts) {
-                    const text = s.textContent || '';
-                    const m = text.match(/"room_id"?[:\\s]+"?(\\d+)"?/);
-                    if (m) return m[1];
-                }
-                return null;
-            };
-
-            const room_id = getRoomId();
-            if (!room_id) return null;
-
-            // 抖音 web API 获取直播流
-            const url = `https://www.douyin.com/aweme/v1/web/room/feed/?room_id=${room_id}&device_platform=webapp&aid=6383`;
-            try {
-                const resp = await fetch(url, { credentials: 'include' });
-                const data = await resp.json();
-                if (data && data.data && data.data.stream_url && data.data.stream_url.hls_pull_url) {
-                    return data.data.stream_url.hls_pull_url.HD || null;
-                }
-            } catch (e) {}
-            return null;
-        }""")
-        if m3u8_from_api and ".m3u8" in m3u8_from_api:
-            print(f"[hls_recorder] Strategy 3 成功: {m3u8_from_api[:80]}")
-            return m3u8_from_api
+        room_id_match = re.search(r"live\.douyin\.com/(\d+)", live_url)
+        if not room_id_match:
+            print("[hls_recorder] Strategy 3：无法从 URL 提取 room_id")
         else:
-            print(f"[hls_recorder] Strategy 3 无 m3u8")
+            room_id = room_id_match.group(1)
+
+            # 加载 cookie 字典
+            cookies = {}
+            if COOKIES_PATH.exists():
+                for c in json.loads(COOKIES_PATH.read_text()):
+                    cookies[c["name"]] = c["value"]
+
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                ),
+                "Referer": f"https://live.douyin.com/{room_id}/",
+                "Accept": "text/html,application/xhtml+xml",
+            }
+
+            resp = httpx.get(
+                f"https://live.douyin.com/{room_id}",
+                cookies=cookies,
+                headers=headers,
+                timeout=15,
+                follow_redirects=True,
+            )
+            html = resp.text
+
+            # 从 HTML 中提取 web_stream_url（双转义 JSON：HTML 中是 \"）
+            # 优先匹配完整 URL（有内容且非 null）
+            web_stream_match = re.search(
+                r'\\"web_stream_url\\"\s*:\s*\\"([^\\"]{10,})\\"', html
+            )
+            if web_stream_match:
+                stream_url = web_stream_match.group(1)
+                if ".m3u8" in stream_url:
+                    print(f"[hls_recorder] Strategy 3 成功: {stream_url[:80]}")
+                    return stream_url
+                else:
+                    print(f"[hls_recorder] Strategy 3：web_stream_url={stream_url[:60]}（非 m3u8）")
+            else:
+                # 检查是否为 null（房间未直播）
+                null_match = re.search(r'\\"web_stream_url\\"\s*:\s*null', html)
+                if null_match:
+                    print("[hls_recorder] Strategy 3：web_stream_url 为空（房间可能未在直播）")
+                else:
+                    print("[hls_recorder] Strategy 3：页面无 web_stream_url 数据")
+
     except Exception as e:
         print(f"[hls_recorder] Strategy 3 异常: {e}")
 
@@ -151,7 +166,7 @@ async def fetch_m3u8_url(competitor: dict) -> str | None:
         # 等待页面初始化
         await page.wait_for_timeout(5000)
 
-        m3u8_url = await extract_m3u8_url(page)
+        m3u8_url = await extract_m3u8_url(page, live_url)
 
         await context.close()
         await browser.close()
