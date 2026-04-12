@@ -69,6 +69,14 @@ async def process_competitor(competitor: dict, duration: int):
         import traceback; traceback.print_exc()
         return
 
+    # Step 4: 清理原始录屏文件（transcript 已入库，可以安全删除）
+    try:
+        if video_path.exists():
+            video_path.unlink()
+            print(f"[scheduler] 已清理录屏文件: {video_path.name}")
+    except Exception as e:
+        print(f"[scheduler] 清理录屏文件失败（不影响流程）: {e}")
+
     print(f"[scheduler] {name} 处理完成")
 
 
