@@ -1,5 +1,5 @@
 """
-HLS 流录制模块：从抖音直播间提取 m3u8 直链地址
+HLS 流录制模块：从抖音直播间提取 m3u8 直链地址并录制
 三种策略依次尝试：
   1. video.src 直接读取（video 标签上附带了流地址）
   2. page.route() 拦截网络请求，捕获第一个 .m3u8 URL
@@ -7,12 +7,16 @@ HLS 流录制模块：从抖音直播间提取 m3u8 直链地址
 任意一条成功即返回 m3u8 URL，三条均失败返回 None。
 """
 import json
+import subprocess
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 
 from playwright.async_api import async_playwright
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from config.settings import RECORD_OUTPUT_DIR
 
 COOKIES_PATH = Path(__file__).parent.parent / "config" / "douyin_cookies.json"
 
@@ -157,6 +161,87 @@ async def fetch_m3u8_url(competitor: dict) -> str | None:
 
         print("[hls_recorder] HLS 提取失败")
         return None
+
+
+def record_m3u8(m3u8_url: str, competitor: dict, duration: int = 120) -> Path | None:
+    """
+    用 ffmpeg 直接下载 m3u8 流并 remux 到 mp4，全程不重编码。
+    最多重试 1 次。验证输出包含 audio 流。
+    返回 Path（成功）或 None（失败）。
+    """
+    RECORD_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.now().strftime("%Y%m%d_%H%M")
+    safe_name = competitor["name"].replace(" ", "_")
+    output_path = RECORD_OUTPUT_DIR / f"{safe_name}_{date_str}.mp4"
+
+    last_exc: Exception | None = None
+    for attempt in range(2):  # 0=首次，1=重试
+        if attempt > 0:
+            print(f"[hls_recorder] ffmpeg 录制失败，重试一次...")
+            time.sleep(2)
+
+        try:
+            proc = subprocess.run(
+                [
+                    "ffmpeg", "-y",
+                    "-i", m3u8_url,
+                    "-c", "copy",          # 不重编码，全程 remux
+                    "-t", str(duration),
+                    "-timeout", "30000",   # 单次操作 30s 超时（ffmpeg 内部）
+                    str(output_path),
+                ],
+                capture_output=True,
+                timeout=duration + 60,
+            )
+            if proc.returncode != 0:
+                stderr = proc.stderr.decode("utf-8", errors="replace")
+                # 常见的暂时性错误：network timeout、connection reset → 重试
+                retryable = any(kw in stderr for kw in [
+                    "Connection timed out", "Connection reset", "Server returned 5",
+                    "End of file", "Invalid data found",
+                ])
+                if retryable and attempt == 0:
+                    last_exc = RuntimeError(f"ffmpeg retryable error: {stderr[:200]}")
+                    continue
+                print(f"[hls_recorder] ffmpeg 错误: {stderr[:300]}")
+                last_exc = RuntimeError(f"ffmpeg failed with {proc.returncode}")
+                break
+
+            # 验证 audio 流存在
+            verify = subprocess.run(
+                [
+                    "ffprobe", "-v", "error",
+                    "-select_streams", "a",
+                    "-show_entries", "stream=codec_type",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    str(output_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            if verify.returncode == 0 and verify.stdout.strip():
+                print(f"[hls_recorder] 录制完成（含音频流）: {output_path}")
+                return output_path
+            else:
+                print(f"[hls_recorder] 录制文件无音频流: {output_path}")
+                # 无音频也返回路径（录到了内容），但记录警告
+                return output_path
+
+        except subprocess.TimeoutExpired:
+            last_exc = RuntimeError(f"ffmpeg 超时（{duration + 60}s）")
+            if attempt == 0:
+                continue
+            break
+        except Exception as e:
+            last_exc = e
+            if attempt == 0:
+                continue
+            break
+
+    print(f"[hls_recorder] m3u8 录制失败: {last_exc}")
+    return None
+
 
 
 if __name__ == "__main__":
