@@ -5,6 +5,7 @@
 - Groq 免费 tier 有严格限流：429 时自动指数退避重试，最多重试 3 次
 """
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -90,13 +91,16 @@ def transcribe_video(video_path: Path, competitor_name: str) -> Path:
         timestamp = f"[{_fmt_time(start)} --> {_fmt_time(end)}]"
         lines.append(f"{timestamp} {text.strip()}")
 
-    # 归档路径: archive/猿辅导/20260412/20260412_1000.txt
+    # 归档路径: archive/猿辅导/20260412/20260412_100005.txt
     date_str = datetime.now().strftime("%Y%m%d")
-    time_str = datetime.now().strftime("%Y%m%d_%H%M")
+    time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_name = competitor_name.replace(" ", "_")
     out_dir = ARCHIVE_DIR / safe_name / date_str
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{time_str}.txt"
+    if out_path.exists():
+        suffix = f"{random.randint(0, 0xFFFF):04x}"
+        out_path = out_dir / f"{time_str}_{suffix}.txt"
 
     header = (
         f"账号: {competitor_name}\n"
