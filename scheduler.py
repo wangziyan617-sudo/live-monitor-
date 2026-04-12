@@ -20,7 +20,7 @@ from transcriber.whisper_transcribe import transcribe_video
 from analyzer.claude_analyze import analyze_transcript
 from storage.db import (
     init_db, get_or_create_competitor, create_session,
-    save_transcript, save_analysis
+    save_transcript, save_analysis, get_video_duration
 )
 
 
@@ -48,7 +48,7 @@ async def process_competitor(competitor: dict, duration: int):
         print(f"[scheduler] {name} 未在直播或录制失败，跳过")
         return
 
-    session_id = create_session(name, str(video_path))
+    session_id = create_session(name, str(video_path), duration=get_video_duration(str(video_path)))
 
     # Step 2: 转写
     try:

@@ -6,6 +6,7 @@ SQLite 存储模块
 - transcripts: 转写文本（关联 session）
 - analysis: Claude 分析结果（关联 session）
 """
+import subprocess
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -72,6 +73,29 @@ class Analysis(Base):
 
 def init_db():
     Base.metadata.create_all(engine)
+
+
+def get_video_duration(video_path: str) -> float:
+    """
+    用 ffprobe 读取视频文件的实际时长（秒）。失败时返回 0，不中断流程。
+    """
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(video_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return float(result.stdout.strip())
+    except Exception as e:
+        print(f"[db] ffprobe 读取时长失败: {e}")
+    return 0.0
 
 
 def get_or_create_competitor(name: str, douyin_id: str = "", url: str = "") -> Competitor:
