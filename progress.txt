@@ -88,6 +88,15 @@
 - **Learnings for future iterations:**
   - ffmpeg `-timeout` argument is in microseconds in libavformat — use Python `subprocess.run(timeout=...)` wrapper instead
   - Check stderr for retryable keywords rather than just returncode
+  - Wrap the entire HLS block in try/except so a single competitor's HLS failure doesn't crash the whole scheduler loop
+
+---
+
+## 2026-04-12 - US-011
+- What was implemented: Scheduler now tries HLS first (fetch_m3u8_url → record_m3u8), catches exceptions and logs fallback, then calls original recorder. Both paths return Path|None handled uniformly.
+- Files changed: `scheduler.py`
+- **Learnings for future iterations:**
+  - Wrap the HLS call chain (fetch + record) in one try/except so any exception triggers graceful fallback
 
 ---
 
