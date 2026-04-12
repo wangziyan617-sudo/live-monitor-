@@ -107,11 +107,11 @@ jobs:
           RECORD_DURATION: ${{ github.event.inputs.duration || '900' }}
         run: python scheduler.py --now --duration $RECORD_DURATION
 
-      - name: 提交话术文档到仓库
+      - name: 提交话术文档和数据库到仓库
         run: |
           git config user.name "live-monitor-bot"
           git config user.email "bot@live-monitor"
           mkdir -p storage/archive
-          git add storage/archive/ || true
+          git add storage/archive/ storage/data.db || true
           git diff --staged --quiet || git commit -m "📝 $(date '+%Y-%m-%d') 话术归档"
           git push || echo "没有新内容需要推送"
