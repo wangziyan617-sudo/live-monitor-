@@ -44,4 +44,15 @@
 - **Learnings for future iterations:**
   - Groq audio transcription uses httpx under the hood — HTTPStatusError is the right exception to catch
   - File pointer gets consumed on first upload attempt: must reassign `audio_file = open(...)` inside the retry loop, not just seek(0)
+  - Always `git add` AND `git commit` together — running them in separate steps risks the commit missing staged deletions
+  - Use `git ls-files <path>` to check if a file is tracked before assuming `git rm` will do anything
+
+---
+
+## 2026-04-12 - US-003
+- What was implemented: Removed ANTHROPIC_API_KEY, WHISPER_MODEL, WHISPER_DEVICE from config/settings.py; removed jinja2 from requirements.txt; deleted artifact files '1' and REPORT_20260412.md from git.
+- Files changed: `config/settings.py`, `requirements.txt`, deleted `1`, `REPORT_20260412.md`
+- **Learnings for future iterations:**
+  - REPORT_20260412.md was untracked (??) in initial status — deleting from disk was sufficient, no git rm needed
+  - Use `git ls-files <path>` to check tracked status before `git rm`
 
