@@ -89,6 +89,15 @@
   - ffmpeg `-timeout` argument is in microseconds in libavformat — use Python `subprocess.run(timeout=...)` wrapper instead
   - Check stderr for retryable keywords rather than just returncode
   - Wrap the entire HLS block in try/except so a single competitor's HLS failure doesn't crash the whole scheduler loop
+  - A module-level `record_live_room()` with identical interface (Path|None) makes swapping in scheduler trivial — no caller-side changes needed
+
+---
+
+## 2026-04-12 - US-012
+- What was implemented: Added `record_live_room()` async function to hls_recorder.py with same interface as recorder.record_live_room().
+- Files changed: `crawler/hls_recorder.py`
+- **Learnings for future iterations:**
+  - Matching the existing `record_live_room()` interface in the new module means scheduler only needs to swap the import
 
 ---
 
