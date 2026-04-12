@@ -243,6 +243,25 @@ def record_m3u8(m3u8_url: str, competitor: dict, duration: int = 120) -> Path | 
     return None
 
 
+async def record_live_room(competitor: dict, duration: int = 120) -> Path | None:
+    """
+    统一的录制入口：优先尝试 HLS 流录制，失败时返回 None（由调用方降级）。
+    与 recorder.record_live_room() 接口一致，scheduler 可直接替换调用。
+    """
+    # 尝试 HLS 方案
+    try:
+        m3u8_url = await fetch_m3u8_url(competitor)
+        if m3u8_url:
+            video_path = record_m3u8(m3u8_url, competitor, duration=duration)
+            if video_path:
+                return video_path
+    except Exception as e:
+        print(f"[hls_recorder] HLS 录制异常: {e}")
+
+    # HLS 失败，返回 None 供调用方降级
+    return None
+
+
 
 if __name__ == "__main__":
     import asyncio
