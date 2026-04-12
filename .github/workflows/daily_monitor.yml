@@ -87,6 +87,13 @@ jobs:
           EOF
           echo "虚拟显示和音频已启动，VirtualSink = $(pactl get-default-sink)"
 
+      - name: 写入抖音 Cookie
+        env:
+          DOUYIN_COOKIES: ${{ secrets.DOUYIN_COOKIES }}
+        run: |
+          echo "$DOUYIN_COOKIES" > config/douyin_cookies.json
+          echo "Cookie 已写入 ($(wc -c < config/douyin_cookies.json) bytes)"
+
       - name: 运行监控任务
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
