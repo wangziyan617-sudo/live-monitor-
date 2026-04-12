@@ -5,6 +5,7 @@
   "latest_day": "2026-04-12",
   "competitors_on_day": [
     {
+      "session_id": 1,
       "competitor": "猿辅导新思维官店",
       "recorded_at": "2026-04-12 09:07:16.683163",
       "key_products": [
@@ -30,6 +31,7 @@
       ]
     },
     {
+      "session_id": 2,
       "competitor": "猿辅导思维",
       "recorded_at": "2026-04-12 09:09:49.218791",
       "key_products": [
@@ -53,6 +55,7 @@
       ]
     },
     {
+      "session_id": 3,
       "competitor": "猿辅导",
       "recorded_at": "2026-04-12 09:12:25.004021",
       "key_products": [
@@ -95,6 +98,7 @@
       ]
     },
     {
+      "session_id": 4,
       "competitor": "猿辅导新思维官店",
       "recorded_at": "2026-04-12 10:50:44.830006",
       "key_products": [
@@ -124,6 +128,7 @@
       ]
     },
     {
+      "session_id": 5,
       "competitor": "猿辅导思维",
       "recorded_at": "2026-04-12 10:52:13.684544",
       "key_products": [
@@ -148,6 +153,7 @@
       ]
     },
     {
+      "session_id": 6,
       "competitor": "猿辅导",
       "recorded_at": "2026-04-12 10:53:47.351717",
       "key_products": [
