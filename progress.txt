@@ -56,6 +56,15 @@
 - **Learnings for future iterations:**
   - `create_session` already had a `duration` param — only needed to wire it up, no schema changes
   - `git checkout HEAD -- <file>` safely restores a file to git HEAD before making targeted edits
+  - `random.randint(0, 0xFFFF):04x` gives exactly 4 hex digits with zero-padding (00ff, 0a3b, etc.)
+
+---
+
+## 2026-04-12 - US-005
+- What was implemented: Increased transcript filename precision to %Y%m%d_%H%M%S; added random 4-digit hex collision guard.
+- Files changed: `transcriber/whisper_transcribe.py`
+- **Learnings for future iterations:**
+  - Format `0xFFFF` gives range 0-65535 (4 hex digits); use `04x` in format to 0-pad to exactly 4 chars
 
 ---
 
