@@ -16,19 +16,14 @@ DB_PATH = BASE_DIR / "storage" / "data.db"
 SCHEDULE_HOUR = 10
 SCHEDULE_MINUTE = 0
 
-# 竞品账号列表，格式: {"name": "显示名", "url": "直播间主页URL或直播间URL"}
-# 先用作业帮测试，后续补充
+# 竞品直播间列表，格式: {"name": "显示名", "live_url": "live.douyin.com/数字"}
 COMPETITORS = [
     {
-        "name": "作业帮课程",
-        "douyin_id": "zuoyebang_ke",
-        "url": "https://www.douyin.com/user/zuoyebang_ke",
-        "live_url": None,  # 暂无直播间ID，用主页检测
+        "name": "猿辅导新思维官店",
+        "live_url": "https://live.douyin.com/590298532255",
     },
     {
         "name": "猿辅导",
-        "douyin_id": "90127779527",
-        "url": "https://www.douyin.com/user/MS4wLjABAAAAePqU79VZAxZ3bImup0-yP4W7Y7ys3N8CY4JUaifU-TT3dSFuPjTwU7kp965bp6BY",
-        "live_url": "https://live.douyin.com/90127779527",  # 直播间直链
+        "live_url": "https://live.douyin.com/90127779527",
     },
 ]
