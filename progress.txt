@@ -46,6 +46,16 @@
   - File pointer gets consumed on first upload attempt: must reassign `audio_file = open(...)` inside the retry loop, not just seek(0)
   - Always `git add` AND `git commit` together — running them in separate steps risks the commit missing staged deletions
   - Use `git ls-files <path>` to check if a file is tracked before assuming `git rm` will do anything
+  - ffprobe `-of default=noprint_wrappers=1:nokey=1` outputs just the numeric value without any wrapper, perfect for parsing
+
+---
+
+## 2026-04-12 - US-004
+- What was implemented: Added `get_video_duration()` to storage/db.py using ffprobe; scheduler.py now calls it when creating sessions.
+- Files changed: `storage/db.py`, `scheduler.py`
+- **Learnings for future iterations:**
+  - `create_session` already had a `duration` param — only needed to wire it up, no schema changes
+  - `git checkout HEAD -- <file>` safely restores a file to git HEAD before making targeted edits
 
 ---
 
