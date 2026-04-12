@@ -23,6 +23,10 @@ COMPETITORS = [
         "live_url": "https://live.douyin.com/590298532255",
     },
     {
+        "name": "猿辅导思维",
+        "live_url": "https://live.douyin.com/218786291237",
+    },
+    {
         "name": "猿辅导",
         "live_url": "https://live.douyin.com/90127779527",
     },
