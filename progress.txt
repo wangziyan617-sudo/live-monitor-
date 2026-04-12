@@ -1,0 +1,22 @@
+# Ralph Progress Log - 竞品直播间爬取
+
+## Codebase Patterns
+<!-- 每次迭代发现的可复用模式追加在此 -->
+
+- Use `sys.path.insert(0, str(Path(__file__).parent.parent))` for relative imports across all modules
+- Groq Python SDK (`from groq import Groq`) accepts OpenAI-compatible `.chat.completions.create()` API — same message format works for both MiniMax and Groq
+- httpx raised as `HTTPStatusError` on non-2xx responses; use `except httpx.HTTPStatusError as e` then access `e.response` for status code
+- No mypy/pyright configured in this project — "Typecheck passes" = valid Python syntax + importable module
+- Import groq inside try block or at top-level; groq is already in requirements.txt
+
+---
+
+## 2026-04-12 - US-001
+- What was implemented: Wrapped MiniMax httpx.post call in try/except; on HTTPStatusError or general Exception, auto-switch to Groq llama-3.3-70b-versatile using same messages list. Both fail → original MiniMax exception re-raised so scheduler logs it.
+- Files changed: `analyzer/claude_analyze.py`
+- **Learnings for future iterations:**
+  - Groq SDK uses OpenAI-compatible `.chat.completions.create()` interface — same `messages` dict works for both MiniMax and Groq without transformation
+  - httpx raises `HTTPStatusError` (not just HTTPError) on non-2xx, caught with `except httpx.HTTPStatusError`
+  - Store provider name in a variable so the final log prints which API succeeded
+  - Groq key checked lazily at fallback time (not upfront) so MiniMax-only environments still work
+

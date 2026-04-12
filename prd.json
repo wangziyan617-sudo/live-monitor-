@@ -1,0 +1,199 @@
+{
+  "project": "竞品直播间爬取",
+  "branchName": "ralph/audio-fix",
+  "description": "竞品直播间监控爬取项目——最高优先：音频采集修复（改用 HLS 直录替代 x11grab 屏幕录制）；次优先：稳定化改进",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "分析模块增加 MiniMax API 失败时自动切换 Groq LLM 兜底",
+      "description": "当 MiniMax API 调用失败（超时、限流、报错）时，自动切换到 Groq LLM 完成分析任务，避免整个 pipeline 中断。",
+      "acceptanceCriteria": [
+        "analyzer/claude_analyze.py 中增加 try/except 包裹 MiniMax API 调用",
+        "except 块中调用 Groq LLM (llama-3.3-70b-versatile) 作为兜底",
+        "groq 依赖已在 requirements.txt 中（已有），无需新增",
+        "环境变量 GROQ_API_KEY 在 .env.example 中已声明",
+        "两种 API 均失败时 raise 异常，让 scheduler 感知失败并记录",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "转写模块增加 Groq API 限流重试逻辑",
+      "description": "Groq Whisper API 在免费 tier 下有严格限流，增加指数退避重试，避免 pipeline 因 429 错误中断。",
+      "acceptanceCriteria": [
+        "transcriber/whisper_transcribe.py 中捕获 HTTP 429 错误",
+        "指数退避重试：等待 2^n 秒后重试，最多 3 次",
+        "每次重试前打印 'Rate limited, retrying in Xs...' 日志",
+        "重试耗尽后 raise 例外交给 scheduler 处理",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "清理项目中的废弃代码和死引用",
+      "description": "移除未使用的配置、依赖、文件，让项目状态干净可靠。",
+      "acceptanceCriteria": [
+        "从 config/settings.py 中移除 ANTHROPIC_API_KEY（从未被调用）",
+        "从 requirements.txt 中移除 jinja2（从未被 import）",
+        "从 config/settings.py 中移除 WHISPER_MODEL 和 WHISPER_DEVICE（Groq 云端 API 不使用这些）",
+        "删除项目根目录的 artifact 文件 '1'（单字符文件，来自中断的命令）",
+        "删除 REPORT_20260412.md（调试报告，不应进入 git）",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "修复 session.duration 始终为 0 的问题",
+      "description": "scheduler.py 调用 create_session 时从未传入 duration 参数，导致数据库中所有录播session时长均为0，需从录屏文件元数据中提取真实时长。",
+      "acceptanceCriteria": [
+        "使用 ffprobe 读取录制文件的实际时长（duration_seconds）",
+        "scheduler.py 在 create_session 时传入真实 duration 参数",
+        "如果 ffprobe 读取失败，duration 降级为 0，不中断流程",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "修复转写文件同名覆盖问题",
+      "description": "同一分钟内的两次录制会互相覆盖 transcript 文件，使用时间戳精度提升避免冲突。",
+      "acceptanceCriteria": [
+        "transcriber/whisper_transcribe.py 中将时间戳精度从 %Y%m%d_%H%M 改为 %Y%m%d_%H%M%S",
+        "如果目标文件已存在（极小概率），在秒级时间戳后追加随机4位 hex",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "scheduler.py 增加录制完成后的视频文件清理",
+      "description": "录屏文件在转写分析完成后不再需要，但会持续占用 storage/videos/ 目录，增加自动清理。",
+      "acceptanceCriteria": [
+        "scheduler.py 在 analyze 步骤完成后删除原始录屏文件（mp4/webm）",
+        "删除前验证 transcript 已成功保存到数据库",
+        "清理失败不影响 pipeline 继续运行（只打印警告）",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "修复 GitHub Actions 中 openai-whisper 不必要安装的问题",
+      "description": ".github/workflows/daily_monitor.yml 中安装 requirements.txt 时包含了 openai-whisper，但项目实际使用 Groq 云端 API，不需要这个 3GB 的包，造成 CI 时间浪费。",
+      "acceptanceCriteria": [
+        "确认 requirements.txt 中没有 openai-whisper（已确认没有，跳过此步）",
+        "从 .github/workflows/daily_monitor.yml 中移除所有 openai-whisper 相关安装命令",
+        "如果 workflow 中没有显式安装，跳过此 story",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "看板后端增加 SQLite JSON 字段空值保护",
+      "description": "dashboard/app.py 中某些字段用 json.loads() 解析来自数据库的字符串，如果字段为空字符串会导致 json.loads('') 崩溃。",
+      "acceptanceCriteria": [
+        "遍历 dashboard/app.py 中所有 json.loads() 调用",
+        "在 json.loads() 前检查字符串非空，不为空才解析",
+        "为空时使用空容器默认值（[] 或 {}）",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "创建 hls_recorder.py，提取抖音直播间 m3u8 流地址",
+      "description": "用 Playwright 打开直播间，从页面提取 m3u8 流 URL，作为新音频采集方案的核心步骤。三条策略依次尝试：video.src 直接读取、网络请求拦截拦截 .m3u8、从页面内调用抖音内部 API。",
+      "acceptanceCriteria": [
+        "新建 crawler/hls_recorder.py",
+        "复用现有 cookie 加载逻辑（douyin_cookies.json）",
+        "strategy 1: page.evaluate() 读取 document.querySelector('video').src",
+        "strategy 2: page.route() 拦截包含 .m3u8 的请求，捕获第一个 URL",
+        "strategy 3: page.evaluate() 从页面 context 调用抖音 web API 获取 stream_url",
+        "三条策略依次尝试，任意一条成功即返回 m3u8 URL",
+        "三条均失败返回 None 并打印 'HLS 提取失败' 日志",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "用 ffmpeg 直接录制 m3u8 流",
+      "description": "拿到 m3u8 URL 后，用 ffmpeg -i 直接下载并 remux 到 mp4，全程不重编码，CPU 开销极低。",
+      "acceptanceCriteria": [
+        "ffmpeg -i <m3u8_url> -c copy <output.mp4> 录制",
+        "ffmpeg 进程超时或中断时最多重试 1 次",
+        "输出 mp4 包含 audio stream（用 ffprobe 验证有 audio 流）",
+        "录制完成返回 Path|None，与现有 recorder.py 接口一致",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "实现 HLS 方案的优雅降级",
+      "description": "如果 HLS 提取失败（cookie 过期、策略均失败等），自动回退到现有 x11grab recorder，保证 pipeline 不中断。",
+      "acceptanceCriteria": [
+        "hls_recorder 返回 None 时，scheduler 感知并调用原有 x11grab recorder",
+        "回退时打印明确日志：'HLS 失败，回退到屏幕录制'",
+        "回退录制的结果与正常 HLS 录制结果统一处理",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "scheduler.py 优先调用新 hls_recorder",
+      "description": "修改 scheduler.py，将录制步骤优先分发给 hls_recorder，失败时降级到原 recorder。",
+      "acceptanceCriteria": [
+        "scheduler.py 优先 import 并调用 hls_recorder.record_live_room()",
+        "record_live_room 返回 None 时降级调用原 recorder.record_live_room()",
+        "scheduler 不感知降级细节，只收到 Path|None 结果",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "验证音频质量改善（Whisper 输出非幻觉文本）",
+      "description": "用真实直播验证新方案：Whisper 转写输出内容不再是 '请不吝点赞 订阅 转发 打赏'，证明音频采集成功。",
+      "acceptanceCriteria": [
+        "运行完整 pipeline 录制 2 分钟猿辅导直播",
+        "ffprobe 确认输出 mp4 有 audio stream 且 duration > 0",
+        "Whisper 转写文本中不再包含 '请不吝点赞 订阅 转发 打赏支持明镜与点点栏目' 幻觉固定句",
+        "若仍为幻觉，hls_recorder 或 ffmpeg 录制有问题，需排查",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
