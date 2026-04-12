@@ -1,5 +1,23 @@
 [
   {
+    "id": 11,
+    "competitor_id": 3,
+    "competitor": "猿辅导",
+    "recorded_at": "2026-04-12 15:23:07.116888",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导_20260412_1523.mp4",
+    "duration": 1.04,
+    "status": "analyzed"
+  },
+  {
+    "id": 10,
+    "competitor_id": 2,
+    "competitor": "猿辅导思维",
+    "recorded_at": "2026-04-12 15:22:41.978349",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导思维_20260412_1522.mp4",
+    "duration": 1.073,
+    "status": "transcribed"
+  },
+  {
     "id": 9,
     "competitor_id": 3,
     "competitor": "猿辅导",
