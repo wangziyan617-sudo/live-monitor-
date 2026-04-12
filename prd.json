@@ -102,8 +102,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Already satisfied — requirements.txt has no openai-whisper and workflow has no explicit whisper installation"
     },
     {
       "id": "US-008",
