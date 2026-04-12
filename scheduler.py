@@ -63,8 +63,6 @@ async def process_competitor(competitor: dict, duration: int):
     if not video_path:
         print(f"[scheduler] {name} 未在直播或录制失败，跳过")
         return
-        print(f"[scheduler] {name} 未在直播或录制失败，跳过")
-        return
 
     session_id = create_session(name, str(video_path), duration=get_video_duration(str(video_path)))
 

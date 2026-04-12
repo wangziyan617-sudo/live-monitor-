@@ -8,7 +8,7 @@ on:
       duration:
         description: '录制时长（秒），默认60用于测试，正式用900'
         required: false
-        default: '60'
+        default: '900'
 
 jobs:
   monitor:
@@ -28,12 +28,21 @@ jobs:
             ffmpeg \
             xvfb \
             pulseaudio \
+            pulseaudio-utils \
             x11-utils \
             libnss3 \
             libatk-bridge2.0-0 \
             libdrm2 \
             libxkbcommon0 \
-            libgbm1
+            libgbm1 \
+            libasound2t64 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libpango-1.0-0 \
+            libcairo2 \
+            libpulse0 \
+            libasound2-plugins
 
       - name: 设置 Python
         uses: actions/setup-python@v5
@@ -45,38 +54,57 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: 安装 Playwright 浏览器
-        run: playwright install chromium --with-deps
+        run: playwright install chromium
 
       - name: 启动虚拟显示和音频
         run: |
-          # 启动虚拟显示器（必须在 Playwright 启动前）
+          # 启动虚拟显示器
           Xvfb :99 -screen 0 1280x720x24 -ac &
           XVFB_PID=$!
           echo "XVFB_PID=$XVFB_PID" >> $GITHUB_ENV
           echo "DISPLAY=:99" >> $GITHUB_ENV
-          # 等待 Xvfb 就绪
           sleep 3
-          # 验证 Xvfb 是否正常
           DISPLAY=:99 xdpyinfo | head -5 || echo "Xvfb 启动失败"
           # 启动虚拟音频
           pulseaudio --start --exit-idle-time=-1 || true
           sleep 1
           pactl load-module module-virtual-sink sink_name=VirtualSink || true
           pactl set-default-sink VirtualSink || true
-          echo "虚拟显示和音频已启动"
+          # 配置 ALSA 默认走 PulseAudio（让 Chromium 的 ALSA 调用路由到 VirtualSink）
+          cat > ~/.asoundrc << 'EOF'
+          pcm.!default {
+            type pulse
+            fallback "sysdefault"
+            hint {
+              show on
+              description "Default ALSA Output (currently PulseAudio Sound Server)"
+            }
+          }
+          ctl.!default {
+            type pulse
+            fallback "sysdefault"
+          }
+          EOF
+          echo "虚拟显示和音频已启动，VirtualSink = $(pactl get-default-sink)"
 
       - name: 运行监控任务
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_GROUP_ID: ${{ secrets.MINIMAX_GROUP_ID }}
           DISPLAY: ':99'
-          RECORD_DURATION: ${{ github.event.inputs.duration || '60' }}
+          PULSE_SINK: VirtualSink
+          # libasound2-plugins 提供 ALSA->PulseAudio 桥接，让 Chromium 音频走 VirtualSink
+          ALSA_PCM_CARD: pulse
+          LD_PRELOAD: /usr/lib/x86_64-linux-gnu/alsa-lib/libasound_module_pcm_pulse.so
+          RECORD_DURATION: ${{ github.event.inputs.duration || '900' }}
         run: python scheduler.py --now --duration $RECORD_DURATION
 
       - name: 提交话术文档到仓库
         run: |
           git config user.name "live-monitor-bot"
           git config user.email "bot@live-monitor"
-          git add storage/archive/
+          mkdir -p storage/archive
+          git add storage/archive/ || true
           git diff --staged --quiet || git commit -m "📝 $(date '+%Y-%m-%d') 话术归档"
-          git push
+          git push || echo "没有新内容需要推送"

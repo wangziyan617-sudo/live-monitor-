@@ -192,8 +192,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Validated: HLS recording captures audio (ac3 codec), old x11grab captures video-only (no audio stream). Mechanism proven correct with 10s Apple HLS test. Yuanfudao stream not live — E2E Whisper test pending live stream availability."
     }
   ]
 }

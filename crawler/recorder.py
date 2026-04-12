@@ -116,9 +116,23 @@ async def record_live_room(competitor: dict, duration: int = RECORD_DURATION_SEC
     output_path = RECORD_OUTPUT_DIR / f"{safe_name}_{date_str}.mp4"
 
     async with async_playwright() as p:
+        # 在 Linux 上，合并当前环境变量并追加音频路由配置
+        # 注意：不能只传自定义 env，否则 DISPLAY 等变量会丢失导致 Chromium 找不到 X server
+        launch_env = None
+        if sys.platform == "linux":
+            launch_env = dict(os.environ)
+            launch_env["ALSA_PCM_CARD"] = "pulse"
+            launch_env["PULSE_SINK"] = "VirtualSink"
+
         browser = await p.chromium.launch(
             headless=False,  # 必须 False，否则 x11grab 录不到内容（Linux 上配合 Xvfb）
-            args=["--no-sandbox", "--disable-blink-features=AutomationControlled"],
+            args=[
+                "--no-sandbox",
+                "--disable-blink-features=AutomationControlled",
+                "--autoplay-policy=no-user-gesture-required",
+                "--alsa-output-device=pulse",
+            ],
+            env=launch_env,
         )
         context = await browser.new_context(
             viewport={"width": 1280, "height": 720},
@@ -149,6 +163,31 @@ async def record_live_room(competitor: dict, duration: int = RECORD_DURATION_SEC
                 await page.wait_for_timeout(3000)
             except Exception:
                 print(f"[recorder] 等待视频超时，继续录制...")
+
+            # 取消 video 静音（抖音默认 muted=True，导致录到静音）
+            unmute_count = await page.evaluate("""() => {
+                let count = 0;
+                document.querySelectorAll('video').forEach(v => {
+                    v.muted = false;
+                    v.volume = 1.0;
+                    count++;
+                });
+                return count;
+            }""")
+            print(f"[recorder] 已取消 {unmute_count} 个 video 静音")
+
+            # Debug: 检查 PulseAudio 状态
+            if sys.platform == "linux":
+                result = subprocess.run(
+                    ["pactl", "list", "sink-inputs"],
+                    capture_output=True, text=True
+                )
+                print(f"[recorder] PulseAudio sink-inputs:\n{result.stdout[:500]}")
+                result2 = subprocess.run(
+                    ["pactl", "get-default-sink"],
+                    capture_output=True, text=True
+                )
+                print(f"[recorder] 默认 sink: {result2.stdout.strip()}")
 
             # 启动 ffmpeg 录制
             ffmpeg_cmd = _build_ffmpeg_cmd(output_path, duration)
