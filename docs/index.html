@@ -247,7 +247,7 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
   数据来源：抖音直播间自动录制转写 · <a href="https://github.com/wangziyan617-sudo/live-monitor-" target="_blank">GitHub</a>
 </footer>
 
-<!-- GITHUB_TOKEN_PLACEHOLDER -->
+const GITHUB_TOKEN = "";
 <script>
 // ─── 全局数据 ─────────────────────────────────────────────────────────────────
 let ALL = {
@@ -687,7 +687,8 @@ function downloadSessionTxt(sessionId) {
 	  saveCompetitor(name, brand, document.getElementById('mStage').value.trim(), userUrl, finalLiveUrl);
 	}
 
-	var editingId = panel.dataset.editingId || null;
+	function saveCompetitor(name, brand, stage, userUrl, liveUrl) {
+	  var editingId = panel.dataset.editingId || null;
 	  var msg = document.getElementById("mMsg");
 	  var comps = ALL.competitors.slice();
 	  if (editingId) {
