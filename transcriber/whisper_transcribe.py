@@ -6,8 +6,10 @@
 """
 import os
 import random
+import subprocess
 import sys
 import time
+import tempfile
 from pathlib import Path
 from datetime import datetime
 
@@ -17,9 +19,34 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config.settings import ARCHIVE_DIR
 
 
+def _compress_for_whisper(video_path: Path) -> Path:
+    """
+    用 ffmpeg 将视频/音频压缩为 Whisper 友好的低码率 MP3。
+    16kbps 单声道，15分钟约 1.8MB，远低于 Groq 25MB 限制。
+    返回压缩后的临时 MP3 路径，调用方用完自动删除。
+    """
+    tmp_mp3 = video_path.with_suffix(".compress.mp3")
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(video_path),
+        "-ar", "16000",
+        "-ac", "1",
+        "-b:a", "16k",
+        "-c:a", "libmp3lame",
+        str(tmp_mp3),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg 压缩失败: {result.stderr[-300:]}")
+    size_kb = tmp_mp3.stat().st_size / 1024
+    print(f"[transcriber] 压缩完成: {tmp_mp3.name} ({size_kb:.1f} KB)")
+    return tmp_mp3
+
+
 def transcribe_video(video_path: Path, competitor_name: str) -> Path:
     """
     调用 Groq Whisper API 转写视频，返回归档的 txt 文件路径。
+    先用 ffmpeg 压缩为 16kbps MP3，再送 Whisper（绕过 25MB 限制）。
     """
     from groq import Groq
 
@@ -29,54 +56,51 @@ def transcribe_video(video_path: Path, competitor_name: str) -> Path:
 
     client = Groq(api_key=api_key)
 
-    print(f"[transcriber] 调用 Groq Whisper 转写: {video_path.name}")
-    with open(video_path, "rb") as f:
-        audio_file = f
-        # Groq 免费 tier 严格限流：429 时指数退避重试，最多 3 次
-        last_exc: Exception | None = None
-        for attempt in range(4):  # 0=首次，1-3=重试
-            if attempt > 0:
-                wait_secs = 2 ** attempt
-                print(f"[transcriber] Rate limited, retrying in {wait_secs}s... (attempt {attempt}/3)")
-                time.sleep(wait_secs)
-                # 文件指针已耗尽，需重新打开
-                audio_file = open(video_path, "rb")
-            try:
-                result = client.audio.transcriptions.create(
-                    file=(video_path.name, audio_file),
-                    model="whisper-large-v3",
-                    language="zh",
-                    response_format="verbose_json",
-                    timestamp_granularities=["segment"],
-                )
-                # 成功：若是非首次且重新打开了文件则关闭它
-                if attempt > 0:
-                    audio_file.close()
-                break
-            except httpx.HTTPStatusError as e:
-                last_exc = e
-                if e.response.status_code == 429:
-                    if attempt < 3:
-                        continue  # 进入下一次循环（sleep + reopen + retry）
-                    # 重试耗尽
-                    if attempt > 0:
-                        audio_file.close()
-                    raise
-                else:
-                    if attempt > 0:
-                        audio_file.close()
-                    raise
-        else:
-            # 循环正常结束（all attempts exhausted）但没有 break
-            if attempt > 0:
-                try:
-                    audio_file.close()
-                except Exception:
-                    pass
-            raise RuntimeError(f"Groq Whisper 全部重试失败，最后异常: {last_exc}") from last_exc
+    # Step 1: 压缩音频（Groq 25MB 限制）
+    compressed = _compress_for_whisper(video_path)
 
+    # Step 2: Groq Whisper 转写，429 时指数退避重试，最多 3 次
+    last_exc: Exception | None = None
+    for attempt in range(4):
+        if attempt > 0:
+            wait_secs = 2 ** attempt
+            print(f"[transcriber] Rate limited, retrying in {wait_secs}s... (attempt {attempt}/3)")
+            time.sleep(wait_secs)
+            # 文件指针已耗尽，需重新打开
+            audio_file = open(compressed, "rb")
+        else:
+            audio_file = open(compressed, "rb")
+        try:
+            result = client.audio.transcriptions.create(
+                file=(compressed.name, audio_file),
+                model="whisper-large-v3",
+                language="zh",
+                response_format="verbose_json",
+                timestamp_granularities=["segment"],
+            )
+            audio_file.close()
+            break
+        except httpx.HTTPStatusError as e:
+            audio_file.close()
+            last_exc = e
+            if e.response.status_code == 429 and attempt < 3:
+                continue
+            raise
+        except Exception as e:
+            audio_file.close()
+            raise
+    else:
+        raise RuntimeError(f"Groq Whisper 全部重试失败: {last_exc}") from last_exc
+
+    # Step 3: 清理临时压缩文件
+    try:
+        compressed.unlink()
+    except Exception:
+        pass
+
+    # Step 4: 解析结果
     segments = result.segments or []
-    # segments 可能是 dict 列表（verbose_json 格式）或对象列表，兼容两种
+
     def _get(seg, key):
         return seg[key] if isinstance(seg, dict) else getattr(seg, key)
 
@@ -91,7 +115,7 @@ def transcribe_video(video_path: Path, competitor_name: str) -> Path:
         timestamp = f"[{_fmt_time(start)} --> {_fmt_time(end)}]"
         lines.append(f"{timestamp} {text.strip()}")
 
-    # 归档路径: archive/猿辅导/20260412/20260412_100005.txt
+    # Step 5: 归档
     date_str = datetime.now().strftime("%Y%m%d")
     time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_name = competitor_name.replace(" ", "_")
