@@ -193,8 +193,16 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
       <div class="card-title">添加竞品账号</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">品牌</label>
+          <input id="mStage" type="text" placeholder="如：小学">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">品牌</label>
+          <input id="mBrand" type="text" placeholder="例如：一本" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:140px">
+        </div>
+        <div>
           <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">账号名称</label>
-          <input id="mName" type="text" placeholder="例如：一本官方旗舰店" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:200px">
+          <input id="mName" type="text" placeholder="例如：一本官方旗舰店" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:180px">
         </div>
         <div>
           <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">抖音主页链接</label>
@@ -204,7 +212,7 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
           <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">直播间URL</label>
           <input id="mLiveUrl" type="text" placeholder="https://live.douyin.com/数字（可选）" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:300px">
         </div>
-        <button class="btn pri" style="margin-top:18px" onclick="addCompetitor()">添加</button>
+        <button id="addBtn" class="btn pri" style="margin-top:18px" onclick="addCompetitor()">添加</button>
       </div>
       <div id="mMsg" style="margin-top:10px;font-size:13px"></div>
     </div>
@@ -368,6 +376,7 @@ function switchTab(tab) {
   });
   if (tab === "sessions") renderSessions();
   if (tab === "manage") renderManage();
+  closeDetail();
 }
 
 // ─── 首页·今日概览 ─────────────────────────────────────────────────────────────
@@ -555,6 +564,7 @@ function openProductDetail(productIdx, sessionId) {
   // 存储下载内容
   panel.dataset.downloadContent = downloadContent;
   panel.classList.add("open");
+  showProductTab("overview");
   panel.scrollIntoView({ behavior: "smooth" });
 }
 
@@ -582,74 +592,6 @@ function downloadProductTxt(sessionId, productIdx) {
   URL.revokeObjectURL(a.href);
 }
 
-function buildCard(s) {
-  const a = ALL.analyses.find(a => a.session_id === s.id);
-  if (!a) return "";
-  const time = fmtTime(s.recorded_at);
-  const products = renderProducts(a.key_products);
-
-  // 话术类型统计
-  const groups = groupScriptsByType(a.sales_scripts || []);
-  const scriptSummary = groups.map(function(g) {
-    var label = SCRIPT_TYPE_LABELS[g.type] || g.type;
-    return '<span class="badge" style="margin:2px;cursor:pointer" onclick="openDetailAndShowScripts(' + s.id + ')">' + escHtml(label) + '×' + g.scripts.length + '</span>';
-  }).join("") || '<span style="color:var(--text-3);font-size:12px">暂无</span>';
-
-  // 转写预览（前120字）
-  var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
-  var transcriptPreview = "";
-  if (t && t.full_text) {
-    var firstLine = t.full_text.split("\n").filter(function(l) { return l.trim(); })[0] || "";
-    var previewText = t.full_text.replace(/^\[[^\]]+\]\s*/gm, "").replace(/\n/g, " ").slice(0, 100);
-    transcriptPreview = '<div style="margin-top:10px;font-size:12px;color:var(--text-3);font-style:italic;line-height:1.5">' + escHtml(previewText) + (t.full_text.length > 100 ? "…" : "") + '</div>';
-  }
-
-  const highlights = a.highlights.map(h => '<div class="highlight-item">• ' + escHtml(h) + '</div>').join("") ||
-    '<div style="color:var(--text-3);font-size:13px">暂无</div>';
-  return '<div class="competitor-card">' +
-    '<div class="competitor-name">' + escHtml(s.competitor) + '</div>' +
-    '<div class="competitor-meta">' + time + ' · ' + (s.duration ? Math.round(s.duration/60) + '分钟' : '—') + '</div>' +
-    '<div class="section-label">主推品</div>' + products +
-    '<div class="section-label">话术片段（按类型）</div>' +
-    '<div style="margin-bottom:4px">' + scriptSummary + '</div>' +
-    transcriptPreview +
-    '<div class="section-label">用户画像</div><div class="persona-text">' + escHtml(a.user_persona || "暂无") + '</div>' +
-    '<div class="section-label">话术策略</div><div class="strategy-text">' + escHtml(a.strategy_summary || "暂无") + '</div>' +
-    '<div class="section-label">Highlights</div>' + highlights +
-    '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
-    '<button class="btn btn-sm" onclick="openDetail(' + s.id + ')">查看详情 ▸</button>' +
-    '<button class="btn btn-sm" onclick="openDetail(' + s.id + ');showDetailTab(\'transcript\')">完整转写</button>' +
-    '</div>' +
-    '</div>';
-}
-
-function renderProducts(kps) {
-  if (!kps || !kps.length) return '<div style="color:var(--text-3);font-size:13px">暂无</div>';
-  return kps.map(p => {
-    const meta = [];
-    if (p.price) meta.push(`<span class="badge r">¥${escHtml(p.price)}</span>`);
-    const sps = p.selling_points || [];
-    // 提取课程节数、上课时间、赠品
-    const match = t => sps.some(s => s.includes(t));
-    if (match("节")) {
-      const m = sps.find(s => /\d+节/.test(s)); if (m) meta.push(`<span class="badge g">${escHtml(m)}</span>`);
-    }
-    if (match("周") || match("课时") || match("分钟") || match("小时")) {
-      const m = sps.find(s => /\d+[\u4e00-\u9fa5]*([周课分钟时天])/.test(s)); if (m) meta.push(`<span class="badge">${escHtml(m)}</span>`);
-    }
-    if (match("赠") || match("礼品") || match("资料")) {
-      const m = sps.find(s => s.includes("赠") || s.includes("礼品") || s.includes("资料")); if (m) meta.push(`<span class="badge o">${escHtml(m)}</span>`);
-    }
-    return `
-      <div class="product-item">
-        <div class="product-name">${escHtml(p.name || "")}</div>
-        ${meta.length ? `<div class="product-meta">${meta.join("")}</div>` : ""}
-        ${sps.length ? `<div class="product-points">${sps.map(sp => escHtml(sp)).join(" · ")}</div>` : ""}
-      </div>
-    `;
-  }).join("");
-}
-
 // ─── 话术文本库 ────────────────────────────────────────────────────────────────
 
 	function renderSessions() {
@@ -673,8 +615,8 @@ function renderProducts(kps) {
 	    tbody += '<tr>' +
 	      '<td><b>' + escHtml(s.competitor) + '</b></td>' +
 	      '<td>' + (isToday ? '<b>' : '') + day + (isToday ? ' 📺</b>' : '') + '</td>' +
-	      '<td>' + s.recorded_at.slice(11, 16) + '</td>' +
-	      '<td>' + (s.duration ? Math.round(s.duration / 60) + '分钟' : '—') + '</td>' +
+	      '<td>' + s.recorded_at.slice(0, 16).replace('T', ' ') + '</td>' +
+	      '<td>' + getMainProduct(s.id) + '</td>' +
 	      '<td>' + (s.status === 'analyzed' ? '<span class="badge-status s-analyzed">已分析</span>' : s.status === 'transcribed' ? '<span class="badge-status s-transcribed">已转写</span>' : '<span class="badge-status s-recorded">已录制</span>') + '</td>' +
 	      '<td><button class="btn btn-sm" onclick="openProductDetail(null, ' + s.id + ')">查看详情</button></td>' +
 	      '<td><button class="btn btn-sm" onclick="downloadSessionTxt(' + s.id + ')">📥 下载逐字稿</button></td>' +
@@ -682,11 +624,20 @@ function renderProducts(kps) {
 	  });
 
 	  el.innerHTML = '<div class="card"><div class="table-wrap"><table>' +
-	    '<thead><tr><th>账号</th><th>日期</th><th>时间</th><th>时长</th><th>状态</th><th></th><th></th></tr></thead>' +
+	    '<thead><tr><th>账号</th><th>日期</th><th>提取时间</th><th>商品</th><th>状态</th><th></th><th></th></tr></thead>' +
 	    '<tbody>' + tbody + '</tbody></table></div></div>';
 	}
 
-	function downloadSessionTxt(sessionId) {
+	
+	function getMainProduct(sessionId) {
+	  var a = ALL.analyses.find(function(x) { return x.session_id === sessionId; });
+	  if (!a || !a.key_products || !a.key_products.length) return '<span style="color:var(--text-3);font-size:12px">—</span>';
+	  var p = a.key_products[0];
+	  var price = p.price ? '<span style="color:var(--red);font-weight:600">¥' + escHtml(p.price) + '</span>' : '';
+	  return '<span style="font-size:13px">' + escHtml(p.name || '—') + ' ' + price + '</span>';
+	}
+
+function downloadSessionTxt(sessionId) {
 	  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
 	  var t = ALL.transcripts.find(function(x) { return x.session_id === sessionId; });
 	  if (!t || !t.full_text) return;
@@ -704,38 +655,55 @@ function renderProducts(kps) {
 	  var comps = ALL.competitors;
 	  if (!comps.length) { el.innerHTML = '<div class="empty">暂无竞品，请添加</div>'; return; }
 	  var rows = comps.map(function(c) {
+	    var brand = c.brand || '—';
+	    var profileLink = c.profile_url || '';
+	    var liveLink = c.url || '';
+	    var editBtn = '<button class="btn btn-sm" onclick="editCompetitor(' + c.id + ')" style="margin-right:4px">编辑</button>';
+	    var delBtn = '<button class="btn btn-sm" onclick="deleteCompetitor(' + c.id + ')" style="color:var(--red);border-color:#ffccc7">删除</button>';
+	    var liveBtn = liveLink ? '<a href="' + escHtml(liveLink) + '" target="_blank" class="btn btn-sm" style="margin-right:4px">直播↗</a>' : '';
+	    var profileBtn = profileLink ? '<a href="' + escHtml(profileLink) + '" target="_blank" class="btn btn-sm" style="margin-right:4px">账号↗</a>' : '';
 	    return '<tr>' +
 	      '<td><b>' + escHtml(c.name) + '</b></td>' +
-	      '<td style="max-width:260px"><span style="font-size:12px;color:#666;word-break:break-all">' + escHtml(c.url || c.douyin_id || '—') + '</span></td>' +
-	      '<td style="white-space:nowrap">' +
-	      (c.url ? '<a href="' + escHtml(c.url) + '" target="_blank" class="btn btn-sm" style="margin-right:8px">直播↗</a>' : '') +
-	      '<button class="btn btn-sm" onclick="deleteCompetitor(' + c.id + ')" style="color:var(--red);border-color:#ffccc7">删除</button></td>' +
+	      '<td><span style="font-size:12px;color:var(--blue)">' + escHtml(brand) + '</span></td>' +
+	      '<td style="white-space:nowrap">' + editBtn + liveBtn + profileBtn + delBtn + '</td>' +
 	      '</tr>';
 	  }).join('');
 	  el.innerHTML = '<div class="card"><div class="card-title">当前竞品（' + comps.length + ' 个）</div>' +
-	    '<div class="table-wrap"><table><thead><tr><th>账号名称</th><th>抖音主页/直播间</th><th>操作</th></tr></thead>' +
+	    '<div class="table-wrap"><table><thead><tr><th>账号名称</th><th>品牌</th><th>学段</th><th>操作</th></tr></thead>' +
 	    '<tbody>' + rows + '</tbody></table></div></div>';
 	}
 
 	function addCompetitor() {
 	  var name = document.getElementById("mName").value.trim();
+	  var brand = document.getElementById("mBrand").value.trim();
 	  var userUrl = document.getElementById("mUrl").value.trim();
 	  var liveUrl = document.getElementById("mLiveUrl").value.trim();
 	  var msg = document.getElementById("mMsg");
 	  if (!name) { msg.innerHTML = '<span style="color:var(--red)">请输入账号名称</span>'; return; }
+	  if (!brand) { msg.innerHTML = '<span style="color:var(--red)">请输入品牌名称</span>'; return; }
 	  if (!userUrl && !liveUrl) { msg.innerHTML = '<span style="color:var(--red)">请提供抖音主页链接或直播间链接</span>'; return; }
 	  var finalLiveUrl = liveUrl || 'https://live.douyin.com/待补充';
-	  saveCompetitor(name, userUrl, finalLiveUrl);
+	  saveCompetitor(name, brand, document.getElementById('mStage').value.trim(), userUrl, finalLiveUrl);
 	}
 
-	function saveCompetitor(name, douyinUrl, liveUrl) {
+	var editingId = panel.dataset.editingId || null;
 	  var msg = document.getElementById("mMsg");
 	  var comps = ALL.competitors.slice();
-	  if (comps.some(function(c) { return c.name === name; })) {
-	    msg.innerHTML = '<span style="color:var(--orange)">该账号已存在</span>'; return;
+	  if (editingId) {
+	    // 更新现有
+	    comps = comps.map(function(c) {
+	      if (c.id === editingId) {
+	        c.name = name; c.brand = brand; c.profile_url = userUrl; c.url = liveUrl;
+	      }
+	      return c;
+	    });
+	  } else {
+	    if (comps.some(function(c) { return c.name === name; })) {
+	      msg.innerHTML = '<span style="color:var(--orange)">该账号已存在</span>'; return;
+	    }
+	    var maxId = comps.reduce(function(m, c) { return Math.max(m, c.id || 0); }, 0);
+	    comps.push({ id: maxId + 1, name: name, brand: brand, stage: stage || "", profile_url: userUrl || '', url: liveUrl });
 	  }
-	  var maxId = comps.reduce(function(m, c) { return Math.max(m, c.id || 0); }, 0);
-	  comps.push({ id: maxId + 1, name: name, douyin_id: douyinUrl || '', url: liveUrl });
 	  ALL.competitors = comps;
 	  var fileContent = JSON.stringify(comps, null, 2);
 	  commitFile('docs/data/competitors.json', fileContent, function(ok) {
@@ -754,7 +722,7 @@ function renderProducts(kps) {
 	      a.download = 'competitors.json';
 	      a.click();
 	      URL.revokeObjectURL(a.href);
-	      mEl.innerHTML = '<span style="color:var(--orange)">⚠️ GitHub Pages 无写入权限。请下载 JSON，复制到 <b>docs/data/competitors.json</b>，然后 GitHub 上提交。</span>';
+	      mEl.innerHTML = '<span style="color:var(--orange)">⚠️ GitHub Pages 无写入权限。请下载 JSON，复制到 <b>docs/data/competitors.json</b>，然后 GitHub 上手动提交。</span>';
 	    }
 	  });
 	}
@@ -768,6 +736,37 @@ function renderProducts(kps) {
 	    else alert('删除失败，请手动编辑 docs/data/competitors.json');
 	  });
 	}
+
+	function editCompetitor(id) {
+	  var c = ALL.competitors.find(function(x) { return x.id === id; });
+	  if (!c) return;
+	  document.getElementById("mName").value = c.name || '';
+	  document.getElementById("mBrand").value = c.brand || '';
+	  document.getElementById("mStage").value = c.stage || '';
+	  document.getElementById("mUrl").value = c.profile_url || '';
+	  document.getElementById("mLiveUrl").value = c.url || '';
+	  document.getElementById("mMsg").innerHTML = '<span style="color:var(--blue)">正在编辑：' + escHtml(c.name) + ' <a href="#" onclick="cancelEdit()" style="margin-left:8px">取消编辑</a></span>';
+	  document.getElementById("addBtn").textContent = "更新";
+	  document.getElementById("addBtn").onclick = function() { saveCompetitor(
+	    document.getElementById("mName").value.trim(),
+	    document.getElementById("mBrand").value.trim(),
+	    document.getElementById("mUrl").value.trim(),
+	    document.getElementById("mLiveUrl").value.trim()
+	  ); };
+	  document.querySelector(".container").scrollIntoView();
+	}
+
+	function cancelEdit() {
+	  document.getElementById("mName").value = '';
+	  document.getElementById("mBrand").value = '';
+	  document.getElementById("mStage").value = '';
+	  document.getElementById("mUrl").value = '';
+	  document.getElementById("mLiveUrl").value = '';
+	  document.getElementById("mMsg").innerHTML = '';
+	  document.getElementById("addBtn").textContent = "添加";
+	  document.getElementById("addBtn").onclick = addCompetitor;
+	}
+
 
 	function commitFile(path, content, cb) {
   // GitHub API commit 需要 GITHUB_TOKEN（GitHub Pages 本身没有写入权限）
@@ -797,102 +796,6 @@ function renderProducts(kps) {
 	  }).catch(function() { doCommit(); });
 	}
 
-
-// ─── 竞品动态 ─────────────────────────────────────────────────────────────────
-function renderTrend() {
-  const el = document.getElementById("trendContent");
-  const compId = parseInt(document.getElementById("fTrendComp").value) || 0;
-  const range = document.getElementById("fTrendRange").value;
-
-  const { days, trend } = ALL.trend;
-  const allCompNames = days.length ? Object.keys(trend[days[0]] || {}) : [];
-  const competitors = compId
-    ? ALL.competitors.filter(c => c.id === compId).map(c => c.name)
-    : allCompNames;
-
-  let filteredDays = days;
-  if (range !== "all") {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - parseInt(range));
-    filteredDays = days.filter(d => d >= cutoff.toISOString().slice(0, 10));
-  }
-
-  if (!filteredDays.length || !competitors.length) {
-    el.innerHTML = '<div class="empty">暂无动态数据<br><br><span style="color:var(--text-3)">积累多天数据后将自动展示各竞品推品和话术变化趋势。</span></div>'; return;
-  }
-
-  let html = `<div class="card" style="margin-bottom:12px"><div class="table-wrap"><table class="trend-table">
-    <thead><tr><th>时间</th><th>竞品</th><th>场次</th><th>主推品</th><th>关注亮点</th></tr></thead><tbody>`;
-
-  for (const day of filteredDays) {
-    const dayData = trend[day] || {};
-    for (const comp of competitors) {
-      const items = dayData[comp] || [];
-      if (!items.length) continue;
-
-      items.forEach(function(item, idx) {
-        const s = ALL.sessions.find(function(x) { return x.id === item.session_id; });
-        const time = s ? s.recorded_at.slice(11, 16) : "";
-        const products = item.products || [];
-        const highlights = item.highlights || [];
-        const notable = highlights.filter(function(h) { return /首次|明确|新|强|突|变化|强调|提出|对比|差异/.test(h); });
-        html += "<tr>" +
-          "<td style='white-space:nowrap;color:var(--text-3);font-size:12px'>" + day + " " + time + "</td>" +
-          "<td><b>" + escHtml(comp) + "</b></td>" +
-          "<td style='color:var(--text-3);font-size:12px'>" + (items.length > 1 ? "第" + (idx+1) + "场" : "—") + "</td>" +
-          "<td style='font-size:13px'>" + (products.length ? products.map(function(p) { return "<div>" + escHtml(p) + "</div>"; }).join("") : "<span style='color:var(--text-3)'>暂无</span>") + "</td>" +
-          "<td>" + (notable.length ? notable.map(function(c) { return "<span class='change-new' style='display:block;margin-bottom:3px'>• " + escHtml(c) + "</span>"; }).join("") : "<span style='color:var(--text-3);font-size:12px'>—</span>") + "</td>" +
-          "</tr>";
-      });
-
-      // 同日多场：追加变化分析行
-      if (items.length > 1) {
-        const allHighlights = items.flatMap(function(i) { return i.highlights || []; });
-        const newProducts = allHighlights.filter(function(h) { return /首次|明确|新|提出|强调|突出|变化/.test(h); });
-        html += "<tr style='background:#fafafa'>" +
-          "<td colspan='2' style='font-size:12px;color:var(--text-3);font-style:italic'>同日变化分析</td>" +
-          "<td colspan='3' style='font-size:12px;color:var(--text-2)'>" +
-          (newProducts.length ? newProducts.map(function(c) { return "<span class='change-new' style='margin-right:4px'>变化: " + escHtml(c) + "</span>"; }).join("") : "<span style='color:var(--text-3)'>多场主推品无明显差异</span>") +
-          "</td></tr>";
-      }
-    }
-  }
-
-  html += "</tbody></table></div></div>";
-  el.innerHTML = html;
-}
-
-// ─── 竞争格局 ─────────────────────────────────────────────────────────────────
-function renderMarket() {
-  const el = document.getElementById("marketContent");
-  const { market } = ALL;
-  if (!market.length) { el.innerHTML = '<div class="empty">暂无市场数据</div>'; return; }
-
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px">
-      ${market.map(m => `
-        <div class="overview-card">
-          <div class="overview-comp">${escHtml(m.competitor)}</div>
-          <div class="overview-meta">采集 ${m.session_count} 场 · ${m.dates.join(" / ") || "—"}</div>
-
-          <div class="section-label">目标用户画像</div>
-          <div class="persona-text" style="margin-bottom:12px">${escHtml(m.user_persona || "暂无")}</div>
-
-          <div class="section-label">主推课程方向</div>
-          ${m.key_products_summary.length
-            ? m.key_products_summary.map(p => `<span class="badge" style="margin:2px">${escHtml(p)}</span>`).join("")
-            : '<div style="color:var(--text-3);font-size:13px">暂无</div>'}
-          <div style="margin-top:10px;font-size:13px;color:#666">${escHtml(m.strategy_summary || "暂无策略")}</div>
-
-          <div class="section-label">核心亮点</div>
-          ${m.highlights.length
-            ? m.highlights.map(h => `<div style="font-size:13px;color:var(--text-2);padding:3px 0;border-bottom:1px dashed #f0f0f0">• ${escHtml(h)}</div>`).join("")
-            : '<div style="color:var(--text-3);font-size:13px">暂无</div>'}
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
 
 // ─── 详情面板 ─────────────────────────────────────────────────────────────────
 
@@ -1012,7 +915,6 @@ function renderScriptGroups(scripts) {
 
 function renderTranscript(text) {
   if (!text) return '<div class="empty">暂无转写文本</div>';
-  var tocHtml = "";
   var lines = text.split("\n");
   var entries = [];
   lines.forEach(function(line) {
@@ -1024,177 +926,31 @@ function renderTranscript(text) {
   if (entries.length === 0) {
     return '<div class="transcript-box">' + escHtml(text) + '</div>';
   }
-  entries.forEach(function(e, idx) {
+  // 每5分钟保留一个节点（掐头去尾，同窗口内取第一个）
+  var seen5min = {};
+  var filtered = entries.filter(function(e) {
+    var parts = e.start.split(":");
+    var totalSec = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    var window = Math.floor(totalSec / 300); // 5分钟一个窗口
+    if (seen5min[window]) return false;
+    seen5min[window] = true;
+    return true;
+  });
+
+  var tocHtml = '';
+  filtered.forEach(function(e, idx) {
     tocHtml += '<a href="#tseg' + idx + '" style="display:inline-block;background:#f0f5ff;color:var(--blue);border-radius:4px;padding:1px 8px;font-size:12px;margin:2px;text-decoration:none">' + escHtml(e.start) + '</a>';
   });
-  var bodyHtml = '<div style="margin-bottom:16px;padding:10px;background:#fafafa;border-radius:6px;font-size:12px;color:var(--text-2)">时间导航：' + tocHtml + '</div>';
+  var bodyHtml = '<div style="margin-bottom:16px;padding:10px;background:#fafafa;border-radius:6px;font-size:12px;color:var(--text-2)">时间节点（每5分钟）：' + tocHtml + '</div>';
   bodyHtml += '<div class="transcript-box">';
-  entries.forEach(function(e, idx) {
-    bodyHtml += '<div id="tseg' + idx + '" style="margin-bottom:8px;line-height:1.7">';
-    bodyHtml += '<span style="color:var(--blue);font-weight:600;flex-shrink:0;margin-right:8px">' + escHtml(e.start) + '</span>';
-    bodyHtml += '<span style="color:#333">' + escHtml(e.content) + '</span>';
+  filtered.forEach(function(e, idx) {
+    bodyHtml += '<div id="tseg' + idx + '" style="margin-bottom:10px;line-height:1.7">';
+    bodyHtml += '<span style="color:var(--blue);font-weight:700;flex-shrink:0;margin-right:10px;font-size:14px">[' + escHtml(e.start) + ']</span>';
+    bodyHtml += '<span style="color:#333;font-size:13px">' + escHtml(e.content) + '</span>';
     bodyHtml += '</div>';
   });
   bodyHtml += '</div>';
   return bodyHtml;
-}
-
-function openDetail(sessionId) {
-  var panel = document.getElementById("detailPanel");
-  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
-  var a = ALL.analyses.find(function(x) { return x.session_id === sessionId; });
-  var t = ALL.transcripts.find(function(x) { return x.session_id === sessionId; });
-  if (!a) { panel.innerHTML = '<div class="err-panel">暂无分析数据</div>'; panel.classList.add("open"); return; }
-
-  // 判断是否已有按产品分组的话术（新格式）或旧的扁平话术
-  var hasProductScripts = (a.key_products || []).some(function(p) { return p.scripts && p.scripts.length; });
-  var productScriptsHtml = renderProductScripts(a.key_products || []);
-
-  // 兜底：旧格式话术（按类型分组）
-  var fallbackScripts = renderScriptGroups(a.sales_scripts || []);
-
-  var highlights = a.highlights.map(function(h) { return '<div class="highlight-item">• ' + escHtml(h) + '</div>'; }).join("");
-  var transcriptHtml = t ? renderTranscript(t.full_text) : '<div class="empty">暂无转写文本</div>';
-
-  // 下载话术：生成结构化文本
-  function makeScriptDownload() {
-    var kps = a.key_products || [];
-    var flat = a.sales_scripts || [];
-    var lines = [];
-    lines.push("账号: " + (s.competitor || ""));
-    lines.push("日期: " + (s.recorded_at || "").slice(0, 10));
-    lines.push("时长: " + (s.duration ? Math.round(s.duration/60) + "分钟" : "—"));
-    lines.push("═".repeat(50));
-    lines.push("");
-    if (kps.length) {
-      lines.push("【主推品】");
-      kps.forEach(function(p, pi) {
-        lines.push("  " + (pi+1) + ". " + (p.name||"") + (p.price ? "  ¥" + p.price : ""));
-        if (p.selling_points && p.selling_points.length) {
-          lines.push("     卖点: " + p.selling_points.join("；"));
-        }
-        if (p.scripts && p.scripts.length) {
-          lines.push("     话术片段:");
-          p.scripts.forEach(function(sc) {
-            lines.push("       [" + (sc.timestamp||"") + "] " + (sc.type||"") + ": " + (sc.content||""));
-          });
-        }
-      });
-      lines.push("");
-    }
-    if (flat.length) {
-      lines.push("【全部话术片段（按类型）】");
-      var groups = groupScriptsByType(flat);
-      groups.forEach(function(g) {
-        lines.push("  ◆ " + g.type + " ×" + g.scripts.length);
-        g.scripts.forEach(function(sc) {
-          lines.push("    [" + (sc.timestamp||"") + "] " + (sc.content||""));
-        });
-      });
-      lines.push("");
-    }
-    if (a.user_persona) { lines.push("【用户画像】"); lines.push(a.user_persona); lines.push(""); }
-    if (a.strategy_summary) { lines.push("【话术策略】"); lines.push(a.strategy_summary); lines.push(""); }
-    if (a.highlights && a.highlights.length) { lines.push("【Highlights】"); a.highlights.forEach(function(h){ lines.push("• " + h); }); }
-    return lines.join("\n");
-  }
-
-  var downloadTxtContent = makeScriptDownload();
-  var downloadBtn = '<button class="btn" onclick="downloadScriptText(' + sessionId + ')">📥 下载话术文本</button>';
-  var downloadJsonBtn = '<button class="btn" onclick="downloadScriptJson(' + sessionId + ')">📥 下载JSON</button>';
-
-  panel.innerHTML = '<div class="detail-header">' +
-    '<div class="detail-title">' + escHtml(s.competitor) + ' · ' + fmtDate(s.recorded_at) + ' · ' + (s.duration ? Math.round(s.duration/60) + '分钟' : '') + '</div>' +
-    '<div style="display:flex;gap:8px">' +
-    downloadTxtContent ? downloadBtn : '' +
-    downloadBtn +
-    downloadJsonBtn +
-    '<button class="btn" onclick="closeDetail()">关闭</button>' +
-    '</div></div>' +
-    '<div style="display:flex;gap:8px;margin-bottom:16px">' +
-    '<button class="tab active" id="dt-tab-analysis" onclick="showDetailTab(\'analysis\')">' + (hasProductScripts ? "品牌·产品话术" : "分析详情") + '</button>' +
-    '<button class="tab" id="dt-tab-type" onclick="showDetailTab(\'type\')">按类型</button>' +
-    '<button class="tab" id="dt-tab-transcript" onclick="showDetailTab(\'transcript\')">完整转写</button>' +
-    '</div>' +
-
-    // 品牌·产品话术（新格式）
-    '<div id="dt-analysis">' +
-    '<div class="detail-grid">' +
-    '<div>' +
-    '<div class="section-label">主推品（含话术）</div>' + productScriptsHtml +
-    '<div class="section-label" style="margin-top:16px">用户画像</div><div class="persona-text">' + escHtml(a.user_persona || "暂无") + '</div>' +
-    '<div class="section-label" style="margin-top:16px">话术策略</div><div class="strategy-text">' + escHtml(a.strategy_summary || "暂无") + '</div>' +
-    '<div class="section-label" style="margin-top:16px">Highlights</div>' + (highlights || '<div style="color:var(--text-3)">暂无</div>') +
-    '</div>' +
-    '<div id="dt-type-view">' +
-    '<div class="section-label">全部话术（按类型）</div>' + fallbackScripts +
-    '</div>' +
-    '</div></div>' +
-    '<div id="dt-transcript" style="display:none">' + transcriptHtml + '</div>';
-
-  // 存储下载内容
-  panel.dataset.downloadText = downloadTxtContent;
-  panel.dataset.downloadJson = JSON.stringify({session: s, analysis: a, transcript: t ? {full_text: t.full_text} : null}, null, 2);
-
-  panel.classList.add("open");
-  panel.scrollIntoView({ behavior: "smooth" });
-}
-
-function downloadScriptText(sessionId) {
-  var panel = document.getElementById("detailPanel");
-  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
-  var text = panel.dataset.downloadText || "";
-  if (!text) return;
-  var blob = new Blob(["\uFEFF" + text], {type:"text/plain;charset=utf-8"});
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "话术_" + (s ? s.competitor + "_" + s.recorded_at.slice(0,10) : sessionId) + ".txt";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function downloadScriptJson(sessionId) {
-  var panel = document.getElementById("detailPanel");
-  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
-  var json = panel.dataset.downloadJson || "{}";
-  var blob = new Blob([json], {type:"application/json"});
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "分析_" + (s ? s.competitor + "_" + s.recorded_at.slice(0,10) : sessionId) + ".json";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function closeDetail() {
-  document.getElementById("detailPanel").classList.remove("open");
-}
-
-function showDetailTab(tab) {
-  document.getElementById("dt-tab-analysis") && document.getElementById("dt-tab-analysis").classList.toggle("active", tab === "analysis");
-  document.getElementById("dt-tab-type") && document.getElementById("dt-tab-type").classList.toggle("active", tab === "type");
-  document.getElementById("dt-tab-transcript") && document.getElementById("dt-tab-transcript").classList.toggle("active", tab === "transcript");
-  var analysisDiv = document.getElementById("dt-analysis");
-  var typeDiv = document.getElementById("dt-type-view");
-  if (analysisDiv) analysisDiv.style.display = (tab === "analysis") ? "" : "none";
-  if (typeDiv) typeDiv.style.display = (tab === "type") ? "" : "none";
-  document.getElementById("dt-transcript").style.display = tab === "transcript" ? "" : "none";
-  // 当切到"按类型"时，同时显示主推品的话术
-  if (tab === "type" && document.getElementById("dt-analysis")) {
-    var analysisDiv2 = document.getElementById("dt-analysis");
-    if (analysisDiv2) {
-      // 隐藏主推品部分，只显示按类型
-      var prodSection = analysisDiv2.querySelector(".detail-grid");
-      if (prodSection) {
-        var children = prodSection.children;
-        if (children[0]) children[0].style.display = "none";
-        if (children[1]) children[1].style.display = "";
-      }
-    }
-  }
-}
-
-function openDetailAndShowScripts(sessionId) {
-  openDetail(sessionId);
 }
 
 // ─── 导出 ─────────────────────────────────────────────────────────────────────
