@@ -184,13 +184,6 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
       <select id="fSessComp" onchange="renderSessions()"><option value="">全部</option></select>
       <label>日期</label>
       <select id="fSessDate" onchange="renderSessions()"><option value="">全部</option></select>
-      <label>状态</label>
-      <select id="fSessStatus" onchange="renderSessions()">
-        <option value="">全部</option>
-        <option value="analyzed">已分析</option>
-        <option value="transcribed">已转写</option>
-        <option value="recorded">已录制</option>
-      </select>
       <label>🔍</label>
       <input type="search" id="fSessSearch" placeholder="搜索账号…" oninput="renderSessions()">
     </div>
@@ -467,45 +460,52 @@ function renderSessions() {
   const el = document.getElementById("sessionsContent");
   const compId = parseInt(document.getElementById("fSessComp").value) || 0;
   const date = document.getElementById("fSessDate").value;
-  const status = document.getElementById("fSessStatus").value;
   const kw = document.getElementById("fSessSearch").value.trim().toLowerCase();
 
   let rows = ALL.sessions.slice();
   if (compId) rows = rows.filter(function(s) { return s.competitor_id === compId; });
   if (date) rows = rows.filter(function(s) { return s.recorded_at.startsWith(date); });
-  if (status) rows = rows.filter(function(s) { return s.status === status; });
   if (kw) rows = rows.filter(function(s) { return s.competitor.toLowerCase().indexOf(kw) !== -1; });
 
   if (!rows.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
 
-  const today = new Date().toISOString().slice(0, 10);
-  var tbodyHtml = '';
-  rows.forEach(function(s) {
+  // 下载原文
+  function downloadTranscript(s) {
     var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
-    var textPreview = '<span style="color:var(--text-3);font-size:12px">—</span>';
-    if (t && t.full_text) {
-      var cleanText = t.full_text.replace(/^\[[^\]]+\]\s*/gm, "").replace(/\n+/g, " ").trim();
-      var preview = cleanText.slice(0, 100);
-      textPreview = '<span style="font-size:12px;color:#666;cursor:pointer" onclick="openDetail(' + s.id + ');showDetailTab(\'transcript\')">' + escHtml(preview) + (cleanText.length > 100 ? "…" : "") + '</span>';
-    }
-    var day = s.recorded_at.slice(0, 10);
-    var isToday = day === today;
-    tbodyHtml += '<tr>' +
-      '<td><b>' + escHtml(s.competitor) + '</b></td>' +
-      '<td>' + (isToday ? "<b>" : "") + day + (isToday ? " 📺" : "") + '</td>' +
-      '<td>' + s.recorded_at.slice(11, 16) + '</td>' +
-      '<td>' + (s.duration ? Math.round(s.duration / 60) + "分钟" : "—") + '</td>' +
-      '<td><span class="badge-status ' + (STATUS_CLASS[s.status] || "") + '">' + (STATUS_LABEL[s.status] || s.status) + '</span></td>' +
-      '<td style="max-width:280px">' + textPreview + '</td>' +
-      '<td>' + (s.status === "analyzed" ? '<button class="btn btn-sm pri" onclick="openDetail(' + s.id + ')">分析详情</button>' : "—") + '</td>' +
-      '</tr>';
-  });
+    if (!t || !t.full_text) return;
+    // 去掉时间戳格式，还原纯文本
+    var raw = t.full_text.replace(/^\[[\d:]+\s*-->\s*[\d:]+\]\s*/gm, "");
+    var blob = new Blob(["\uFEFF" + raw], {type:"text/plain;charset=utf-8"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "逐字稿_" + s.competitor + "_" + s.recorded_at.slice(0,10) + ".txt";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
-  el.innerHTML = '<div class="card">' +
-    '<div class="card-title">共 ' + rows.length + ' 条记录（点击文本预览可打开完整转写）</div>' +
-    '<div class="table-wrap"><table>' +
-    '<thead><tr><th>账号</th><th>日期</th><th>时间</th><th>时长</th><th>状态</th><th>转写预览</th><th>操作</th></tr></thead>' +
-    '<tbody>' + tbodyHtml + '</tbody></table></div></div>';
+  // 生成逐字稿 HTML
+  function transcriptHtml(s) {
+    var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
+    if (!t || !t.full_text) return '<div style="color:var(--text-3);font-size:13px;padding:20px">暂无转写文本</div>';
+    var raw = t.full_text.replace(/^\[[\d:]+\s*-->\s*[\d:]+\]\s*/gm, "");
+    return '<div class="transcript-box">' + escHtml(raw) + '</div>';
+  }
+
+  var html = '<div style="display:flex;flex-direction:column;gap:20px">';
+  rows.forEach(function(s) {
+    var day = s.recorded_at.slice(0, 10);
+    html += '<div class="card">';
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">';
+    html += '<span style="font-size:16px;font-weight:700">' + escHtml(s.competitor) + '</span>';
+    html += '<span style="font-size:13px;color:var(--text-3)">' + day + ' ' + s.recorded_at.slice(11,16) + '</span>';
+    if (s.duration) html += '<span class="badge" style="font-size:12px">' + Math.round(s.duration/60) + '分钟</span>';
+    html += '<button class="btn" style="margin-left:auto" onclick="(' + downloadTranscript.toString() + ')(' + JSON.stringify(s).replace(/'/g, "\\'") + ')">📥 下载逐字稿</button>';
+    html += '</div>';
+    html += transcriptHtml(s);
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ─── 竞品动态 ─────────────────────────────────────────────────────────────────
