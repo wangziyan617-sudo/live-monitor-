@@ -428,7 +428,7 @@ function renderProductTable(sessions) {
     }
 
     products.forEach(function(p, pi) {
-      var price = p.price ? '<span style="color:var(--red);font-weight:600">' + escHtml(p.price) + '</span>' : '—';
+      var price = p.price ? '<span style="color:var(--red);font-weight:600">' + escHtml(cleanPrice(p.price)) + '</span>' : '—';
       var spText = p.selling_points && p.selling_points.length
         ? p.selling_points.slice(0, 3).map(function(sp) { return '<span class="badge" style="margin:2px">' + escHtml(sp) + '</span>'; }).join('')
         : '<span style="color:var(--text-3);font-size:12px">—</span>';
@@ -526,7 +526,7 @@ function openProductDetail(productIdx, sessionId) {
   var productInfo = '';
   if (p) {
     var meta = [];
-    if (p.price) meta.push('<span class="badge r" style="font-size:13px;padding:3px 10px">¥' + escHtml(p.price) + '</span>');
+    if (p.price) meta.push('<span class="badge r" style="font-size:13px;padding:3px 10px">¥' + escHtml(cleanPrice(p.price)) + '</span>');
     if (p.selling_points && p.selling_points.length) {
       p.selling_points.forEach(function(sp) { meta.push('<span class="badge" style="margin:2px">' + escHtml(sp) + '</span>'); });
     }
@@ -634,7 +634,7 @@ function downloadProductTxt(sessionId, productIdx) {
 	  var a = ALL.analyses.find(function(x) { return x.session_id === sessionId; });
 	  if (!a || !a.key_products || !a.key_products.length) return '<span style="color:var(--text-3);font-size:12px">—</span>';
 	  var p = a.key_products[0];
-	  var price = p.price ? '<span style="color:var(--red);font-weight:600">¥' + escHtml(p.price) + '</span>' : '';
+	  var price = p.price ? '<span style="color:var(--red);font-weight:600">¥' + escHtml(cleanPrice(p.price)) + '</span>' : '';
 	  return '<span style="font-size:13px">' + escHtml(p.name || '—') + ' ' + price + '</span>';
 	}
 
@@ -842,7 +842,7 @@ function renderProductScripts(kps) {
   kps.forEach(function(p, pi) {
     var scripts = p.scripts || [];
     var sps = p.selling_points || [];
-    var price = p.price;
+    var price = cleanPrice(p.price);
     // 判断是否有产品级话术
     var hasScripts = scripts.length > 0;
     html += '<div style="margin-bottom:20px;border:1px solid #eee;border-radius:8px;overflow:hidden">';
@@ -998,6 +998,11 @@ function escHtml(s) {
 }
 function fmtDate(dt) { return new Date(dt).toLocaleString("zh-CN", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }
 function fmtTime(dt) { return new Date(dt).toLocaleString("zh-CN", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+// 清洗价格：去掉"原价/定价/吊牌价"等前缀，只保留实际售价
+function cleanPrice(raw) {
+  if (!raw) return '';
+  return String(raw).replace(/^(原|定|吊牌)?价[：:]\s*/i, '').replace(/\s*[\[\(（【\[].*?[\]\)）】\]]/g, '').trim();
+}
 
 // ─── 启动 ─────────────────────────────────────────────────────────────────────
 init().catch(e => { console.error(e); });

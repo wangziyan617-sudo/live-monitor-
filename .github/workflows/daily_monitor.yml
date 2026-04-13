@@ -5,8 +5,12 @@ on:
     - cron: '0 12 * * *'  # 北京时间 20:00（UTC+8，所以 UTC 12:00）
   workflow_dispatch:       # 支持手动触发
     inputs:
+      mode:
+        description: '模式：full=录制+转写+分析，static=仅重新生成静态页面'
+        required: false
+        default: 'full'
       duration:
-        description: '录制时长（秒），默认900秒（15分钟）'
+        description: '录制时长（秒），仅 mode=full 时有效，默认900秒（15分钟）'
         required: false
         default: '900'
 
@@ -14,6 +18,8 @@ jobs:
   monitor:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      RUN_MODE: ${{ github.event.inputs.mode || 'full' }}
     permissions:
       contents: write
       pages: write
@@ -70,9 +76,11 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: 安装 Playwright 浏览器
+        if: env.RUN_MODE != 'static'
         run: playwright install chromium
 
       - name: 启动虚拟显示和音频
+        if: env.RUN_MODE != 'static'
         run: |
           # 启动虚拟显示器
           Xvfb :99 -screen 0 1280x720x24 -ac &
@@ -104,6 +112,7 @@ jobs:
           echo "虚拟显示和音频已启动，VirtualSink = $(pactl get-default-sink)"
 
       - name: 写入抖音 Cookie
+        if: env.RUN_MODE != 'static'
         env:
           DOUYIN_COOKIES: ${{ secrets.DOUYIN_COOKIES }}
         run: |
@@ -111,6 +120,7 @@ jobs:
           echo "Cookie 已写入 ($(wc -c < config/douyin_cookies.json) bytes)"
 
       - name: 运行监控任务
+        if: env.RUN_MODE != 'static'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
@@ -122,6 +132,10 @@ jobs:
           LD_PRELOAD: /usr/lib/x86_64-linux-gnu/alsa-lib/libasound_module_pcm_pulse.so
           RECORD_DURATION: ${{ github.event.inputs.duration || '900' }}
         run: python scheduler.py --now --duration $RECORD_DURATION
+
+      - name: 修复 transcribed→analyzed 状态（MiniMax失败兜底）
+        # 兜底：在 DB 里找 transcribed 但无分析结果的会话，重新分析
+        run: python scheduler.py --reanalyze
 
       - name: 生成静态数据文件
         run: python generate_static.py

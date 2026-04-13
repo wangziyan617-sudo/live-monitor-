@@ -166,6 +166,30 @@ def run_daily_job(duration: int):
 
 if __name__ == "__main__":
     init_db()
+
+    # --reanalyze: 跳过录制，只对已有转写但未分析的会话重新分析
+    if "--reanalyze" in sys.argv:
+        db = SessionLocal()
+        sessions = db.query(Session).filter_by(status="transcribed").all()
+        if not sessions:
+            print("[scheduler] 没有需要重新分析的会话（transcribed状态）")
+        else:
+            print(f"[scheduler] --reanalyze: 找到 {len(sessions)} 个 transcribed 会话，重新分析…")
+            from analyzer.claude_analyze import analyze_transcript
+            for s in sessions:
+                transcript = db.query(Transcript).filter_by(session_id=s.id).first()
+                if transcript:
+                    try:
+                        result = analyze_transcript(transcript.full_text, s.competitor.name)
+                        save_analysis_result(s.id, result)
+                        s.status = "analyzed"
+                        db.commit()
+                        print(f"[scheduler] session={s.id}({s.competitor.name}) 分析完成")
+                    except Exception as e:
+                        print(f"[scheduler] session={s.id} 分析失败: {e}")
+        db.close()
+        sys.exit(0)
+
     duration = int(os.environ.get("RECORD_DURATION", RECORD_DURATION_SECONDS))
     if "--duration" in sys.argv:
         idx = sys.argv.index("--duration")
