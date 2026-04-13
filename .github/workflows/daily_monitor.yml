@@ -134,9 +134,23 @@ jobs:
           git config user.name "live-monitor-bot"
           git config user.email "bot@live-monitor"
           mkdir -p storage/archive
-          # inject_token.py 已修改 docs/index.html，重新 stage
+          # inject_token.py 已修改 docs/index.html，在 git add 之前运行
           git add docs/ || true
           # stage storage
           git add storage/archive/ storage/data.db || true
           git diff --staged --quiet || git commit -m "📝 $(date '+%Y-%m-%d') 话术归档 + 静态页面"
           git push || echo "没有新内容需要推送"
+
+      - name: 触发 Pages 从 Actions 重新部署
+        # inject_token.py 已将 token 注入 docs/index.html 并 commit，
+        # 但 legacy build_type 的 Pages 部署在 commit 之前触发，抓不到最新 commit。
+        # 改用 workflow build_type，让 Pages 执行 workflow 来部署（可拿到最新 commit 的 token）。
+        run: |
+          sleep 5
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/pages \
+            -d '{"build_type":"workflow"}'
+          echo "Pages build_type 已改为 workflow"
