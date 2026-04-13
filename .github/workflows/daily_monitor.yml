@@ -127,20 +127,7 @@ jobs:
       - name: 注入 Dashboard Token 到看板
         env:
           DASHBOARD_TOKEN: ${{ secrets.DASHBOARD_TOKEN }}
-        run: |
-          python3 << 'PYEOF'
-import pathlib, os
-token = os.environ['DASHBOARD_TOKEN']
-html = pathlib.Path('docs/index.html').read_text()
-placeholder = '<!-- GITHUB_TOKEN_PLACEHOLDER -->'
-replacement = 'const GITHUB_TOKEN = "' + token + '";'
-if placeholder in html:
-    html = html.replace(placeholder, replacement, 1)
-    pathlib.Path('docs/index.html').write_text(html)
-    print("Token injected via placeholder OK")
-else:
-    print("WARNING: placeholder not found")
-PYEOF
+        run: python .github/inject_token.py
 
       - name: 提交话术文档、数据库和静态页面到仓库
         run: |
