@@ -124,6 +124,11 @@ jobs:
       - name: 生成静态数据文件
         run: python generate_static.py
 
+      - name: 注入 Dashboard Token 到看板
+        run: |
+          sed -i 's|<script>|const GITHUB_TOKEN = "${{ secrets.DASHBOARD_TOKEN }}";\n  <script>|' docs/index.html
+          echo "✅ Token 已注入，竞品管理页可写权限"
+
       - name: 提交话术文档、数据库和静态页面到仓库
         run: |
           git config user.name "live-monitor-bot"
