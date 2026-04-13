@@ -266,8 +266,8 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
   数据来源：抖音直播间自动录制转写 · <a href="https://github.com/wangziyan617-sudo/live-monitor-" target="_blank">GitHub</a>
 </footer>
 
-const GITHUB_TOKEN = "ghs_9rf3ba3chAQz4rGkaJq1w2DtyElKbi0wpJdt";
 <script>
+const GITHUB_TOKEN = "GITHUB_TOKEN_PLACEHOLDER";
 // ─── 全局数据 ─────────────────────────────────────────────────────────────────
 let ALL = {
   competitors: [], sessions: [], analyses: [], transcripts: [],
@@ -355,7 +355,7 @@ function renderAccountsOverview() {
   let headerHtml = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">' +
     '<div style="font-size:22px;font-weight:700;color:var(--blue)">' + total + '</div>' +
     '<div style="font-size:14px;color:var(--text-2)">个账号</div>' +
-    '<div style="margin-left:auto;font-size:12px;color:var(--text-3)">每日北京时间 20:00 自动更新</div>' +
+    '<div style="margin-left:auto;font-size:12px;color:var(--text-3)">每日北京时间 08:00 自动更新</div>' +
     '</div>';
 
   // 账号卡片网格
@@ -603,6 +603,11 @@ function showProductTab(tab) {
   if (tr) tr.style.display = tab === "transcript" ? "block" : "none";
 }
 
+function closeDetail() {
+  var panel = document.getElementById("detailPanel");
+  if (panel) panel.classList.remove("open");
+}
+
 function downloadProductTxt(sessionId, productIdx) {
   var panel = document.getElementById("detailPanel");
   var content = panel.dataset.downloadContent || "";
@@ -828,21 +833,30 @@ function downloadSessionTxt(sessionId) {
 
 // 话术类型中文映射和顺序
 var SCRIPT_TYPE_ORDER = [
-  "暖场破冰", "开场白", "痛点/需求唤醒", "痛点需求唤醒",
-  "价值塑造", "产品介绍", "效果承诺",
-  "信任背书", "社会认同", "比喻说服",
-  "促销逼单", "服务保障", "催单话术",
+  "暖场/开场", "开场/暖场", "暖场破冰", "开场白", "暖场", "开场",
+  "痛点/需求唤醒", "痛点需求唤醒", "痛点", "痛点需求", "使用场景", "适用人群说明",
+  "价值塑造", "产品介绍", "产品功能", "产品展示", "价格锚定",
+  "效果承诺", "信任背书", "专项突破", "专项训练", "考前模拟",
+  "社会认同", "比喻说服",
+  "促销逼单", "逼单", "库存紧张", "时间限定", "限时限量", "催单话术",
+  "服务保障", "版本说明", "版本选择", "赠品价值", "赠品促销", "赠品刺激", "赠品策略",
   "结尾收束", "FAQ答疑",
 ];
 var SCRIPT_TYPE_LABELS = {
-  "痛点/需求唤醒": "痛点唤醒", "痛点需求唤醒": "痛点唤醒",
-  "暖场破冰": "暖场破冰", "开场白": "开场白",
-  "价值塑造": "价值塑造", "产品介绍": "产品介绍",
+  "痛点/需求唤醒": "痛点唤醒", "痛点需求唤醒": "痛点唤醒", "痛点需求": "痛点唤醒",
+  "暖场破冰": "暖场破冰", "暖场/开场": "暖场开场", "开场/暖场": "暖场开场",
+  "开场白": "开场白", "暖场": "暖场", "开场": "开场",
+  "使用场景": "使用场景", "适用人群说明": "适用人群",
+  "价值塑造": "价值塑造", "产品介绍": "产品介绍", "产品功能": "产品功能", "产品展示": "产品展示",
+  "价格锚定": "价格锚定",
   "效果承诺": "效果承诺", "信任背书": "信任背书",
+  "专项突破": "专项突破", "专项训练": "专项训练", "考前模拟": "考前模拟",
   "社会认同": "社会认同", "比喻说服": "比喻说服",
-  "促销逼单": "促销逼单", "服务保障": "服务保障",
-  "催单话术": "催单话术", "结尾收束": "结尾收束",
-  "FAQ答疑": "FAQ答疑",
+  "促销逼单": "促销逼单", "逼单": "逼单", "库存紧张": "库存紧张", "时间限定": "时间限定", "限时限量": "限时限量",
+  "催单话术": "催单话术",
+  "服务保障": "服务保障", "版本说明": "版本说明", "版本选择": "版本选择",
+  "赠品价值": "赠品价值", "赠品促销": "赠品促销", "赠品刺激": "赠品刺激", "赠品策略": "赠品策略",
+  "结尾收束": "结尾收束", "FAQ答疑": "FAQ答疑",
 };
 
 function groupScriptsByType(scripts) {
@@ -1035,6 +1049,7 @@ var _evoChart = null;
 function renderEvolution() {
   var el = document.getElementById('evolutionContent');
   if (!el) return;
+  console.log('[evolution] ALL.sessions.length=', ALL.sessions.length, 'analyses=', ALL.analyses.length);
   if (!ALL.sessions.length) { el.innerHTML = '<div class=empty>暂无数据</div>'; return; }
   var dimMap = {
     '促销逼单': '逼单力度', '逼单': '逼单力度', '暖场破冰': '逼单力度', '暖场/开场': '逼单力度', '开场/暖场': '逼单力度', '库存紧张': '逼单力度', '时间限定': '逼单力度', '限时限量': '逼单力度',
@@ -1070,6 +1085,7 @@ function renderEvolution() {
     (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(tally); });
   });
   var dates = Object.keys(seriesMap).sort();
+  console.log('[evolution] seriesMap dates=', dates, 'competitors=', competitors, 'firstEntry=', JSON.stringify(seriesMap[dates[0]]));
   if (!dates.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
   var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
   var defaultDim = '逼单力度';
@@ -1089,11 +1105,14 @@ function renderEvolution() {
     '<div style=margin:8px 0 12px><span style=font-size:13px>维度：</span>' + radios + '</div>' +
     '<canvas id=evoCanvas height=80></canvas></div>';
   if (_evoChart) _evoChart.destroy();
-  _evoChart = new Chart(document.getElementById('evoCanvas'), {
-    type: 'line',
-    data: { labels: dates, datasets: datasets },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-  });
+  try {
+    _evoChart = new Chart(document.getElementById('evoCanvas'), {
+      type: 'line',
+      data: { labels: dates, datasets: datasets },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+    console.log('[evolution] chart created, dates=', dates, 'datasets=', datasets.length);
+  } catch(e) { console.error('[evolution] chart error', e); }
 }
 function renderEvolutionDim(dim) {
   var el = document.getElementById('evolutionContent');
@@ -1145,6 +1164,7 @@ var _radarChart = null;
 function renderRadar() {
   var el = document.getElementById('radarContent');
   if (!el) return;
+  console.log('[radar] sessions=', ALL.sessions.length, 'analyses=', ALL.analyses.length);
   if (!ALL.sessions.length) { el.innerHTML = '<div class=empty>暂无数据</div>'; return; }
   var typeToDim = {
     '促销逼单': '逼单力度', '逼单': '逼单力度', '暖场破冰': '逼单力度', '暖场/开场': '逼单力度', '开场/暖场': '逼单力度', '库存紧张': '逼单力度', '时间限定': '逼单力度', '限时限量': '逼单力度',

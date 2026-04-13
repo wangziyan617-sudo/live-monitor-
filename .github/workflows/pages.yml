@@ -1,0 +1,58 @@
+name: GitHub Pages 部署
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # JSON/data 变更时，自动重新生成含 token 的 HTML 并 deploy
+      - 'docs/data/**'
+      - 'storage/data.db'
+      - 'storage/archive/**'
+  workflow_dispatch:    # 手动触发
+  # 接受 main workflow 触发（见 daily_monitor.yml 末尾）
+  workflow_run:
+    workflows: [每日直播间监控]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-pages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt --quiet
+
+      - name: 生成含 token 的静态文件
+        env:
+          # github.token 在 pages 环境里可用（通过 environment secrets）
+          # 但我们用 github.token 的值注入（Actions 自动注入，对 Pages 环境同样有效）
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python generate_static.py
+
+      - name: 上传 Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
