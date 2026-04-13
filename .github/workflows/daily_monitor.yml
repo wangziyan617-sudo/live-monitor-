@@ -25,15 +25,17 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 配置 GitHub Pages（从 docs/ 目录发布）
+      - name: 注入 Token 到看板 HTML（commit 之前执行，确保 token 进入 git 记录）
         run: |
-          # 通过 GitHub API 将 Pages source 设置为 main 分支的 /docs 目录
-          curl -s -X PUT \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/pages \
-            -d '{"build_type":"legacy","source":{"branch":"main","path":"/docs"}}'
+          # 直接用 sed 替换占位符，避免 inject_token.py 顺序问题
+          # ${{ secrets.DASHBOARD_TOKEN }} 在 workflow 运行时展开为实际值
+          TOKEN="${{ secrets.DASHBOARD_TOKEN }}"
+          if [ -n "$TOKEN" ]; then
+            sed -i "s|<!-- GITHUB_TOKEN_PLACEHOLDER -->|const GITHUB_TOKEN = \"${TOKEN}\";|" docs/index.html
+            echo "Token 已注入 (长度: ${#TOKEN})"
+          else
+            echo "WARNING: DASHBOARD_TOKEN secret 未设置，跳过 token 注入"
+          fi
 
       - name: 安装系统依赖
         run: |
@@ -124,33 +126,14 @@ jobs:
       - name: 生成静态数据文件
         run: python generate_static.py
 
-      - name: 注入 Dashboard Token 到看板
-        env:
-          DASHBOARD_TOKEN: ${{ secrets.DASHBOARD_TOKEN }}
-        run: python .github/inject_token.py
-
       - name: 提交话术文档、数据库和静态页面到仓库
         run: |
           git config user.name "live-monitor-bot"
           git config user.email "bot@live-monitor"
           mkdir -p storage/archive
-          # inject_token.py 已修改 docs/index.html，在 git add 之前运行
+          # sed 注入了 token，git add 会提交带 token 的 HTML
           git add docs/ || true
           # stage storage
           git add storage/archive/ storage/data.db || true
           git diff --staged --quiet || git commit -m "📝 $(date '+%Y-%m-%d') 话术归档 + 静态页面"
           git push || echo "没有新内容需要推送"
-
-      - name: 触发 Pages 从 Actions 重新部署
-        # inject_token.py 已将 token 注入 docs/index.html 并 commit，
-        # 但 legacy build_type 的 Pages 部署在 commit 之前触发，抓不到最新 commit。
-        # 改用 workflow build_type，让 Pages 执行 workflow 来部署（可拿到最新 commit 的 token）。
-        run: |
-          sleep 5
-          curl -s -X PATCH \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/pages \
-            -d '{"build_type":"workflow"}'
-          echo "Pages build_type 已改为 workflow"
