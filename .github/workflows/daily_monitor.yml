@@ -123,6 +123,10 @@ jobs:
 
       - name: Phase 2 - 转写+分析已有视频（full 和 analyze 模式）
         if: env.RUN_MODE != 'static'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_GROUP_ID: ${{ secrets.MINIMAX_GROUP_ID }}
         run: python scheduler.py --phase2-only
 
       - name: 生成静态数据文件（含 token 注入）
