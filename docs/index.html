@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>竞品直播间监控看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -158,6 +159,9 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
     <div class="tab active" id="tab-btn-compare" onclick="switchTab('compare')">首页·今日概览</div>
     <div class="tab" id="tab-btn-sessions" onclick="switchTab('sessions')">话术文本库</div>
     <div class="tab" id="tab-btn-manage" onclick="switchTab('manage')">竞品管理</div>
+    <div class="tab" id="tab-btn-evolution" onclick="switchTab('evolution')">策略演进</div>
+    <div class="tab" id="tab-btn-radar" onclick="switchTab('radar')">竞品博弈</div>
+    <div class="tab" id="tab-btn-cloud" onclick="switchTab('cloud')">话术词云</div>
     <div class="tab" id="tab-btn-about" onclick="switchTab('about')">说明</div>
   </div>
 
@@ -172,6 +176,21 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
       <input type="search" id="fSearch" placeholder="搜索…" oninput="renderCompare()">
     </div>
     <div id="compareContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 策略演进图 ─────────────────────────────────────── -->
+  <div id="tab-evolution" style="display:none">
+    <div id="evolutionContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 竞品博弈雷达图 ───────────────────────────────────── -->
+  <div id="tab-radar" style="display:none">
+    <div id="radarContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 话术词云 ─────────────────────────────────────── -->
+  <div id="tab-cloud" style="display:none">
+    <div id="cloudContent"><div class="loading">加载中…</div></div>
   </div>
 
   <!-- ── 话术文本库 ───────────────────────────────────────── -->
@@ -368,7 +387,7 @@ function renderAccountsOverview() {
 // ─── 标签切换 ─────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   currentTab = tab;
-  const tabs = ["compare", "sessions", "manage", "about"];
+  const tabs = ["compare", "evolution", "radar", "cloud", "sessions", "manage", "about"];
   tabs.forEach(t => {
     const btn = document.getElementById("tab-btn-" + t);
     if (btn) btn.classList.toggle("active", t === tab);
@@ -377,6 +396,9 @@ function switchTab(tab) {
   });
   if (tab === "sessions") renderSessions();
   if (tab === "manage") renderManage();
+  if (tab === "evolution") renderEvolution();
+  if (tab === "radar") renderRadar();
+  if (tab === "cloud") renderCloud();
   closeDetail();
 }
 
@@ -1010,6 +1032,196 @@ function cleanPrice(raw) {
   // 去掉残余的空括号（如果原价那部分把括号内容清空了）
   s = s.replace(/\s*\([（【]*\)*\)*/g, '').replace(/\s*\)[）\]]*/g, '');
   return s.trim() || raw;
+}
+
+
+
+// 策略演进图
+var _evoChart = null;
+function renderEvolution() {
+  var el = document.getElementById('evolutionContent');
+  if (!el) return;
+  if (!ALL.sessions.length) { el.innerHTML = '<div class=empty>暂无数据</div>'; return; }
+  var dimMap = {
+    '促销逼单': '逼单力度', '暖场破冰': '逼单力度',
+    '痛点需求唤醒': '挖需深度', '开场白': '专业度', '信任背书': '专业度', '效果承诺': '专业度',
+    '服务保障': '服务保障', 'FAQ答疑': '服务保障',
+    '社会认同': '焦虑制造', '比喻说服': '焦虑制造',
+    '价值塑造': '价格诱导', '产品介绍': '价格诱导',
+  };
+  var dims = ['逼单力度', '挖需深度', '价格诱导', '专业度', '服务保障', '焦虑制造'];
+  var seriesMap = {};
+  var competitors = [];
+  ALL.sessions.forEach(function(s) {
+    if (s.status !== 'analyzed') return;
+    var a = ALL.analyses.find(function(x) { return x.session_id === s.id; });
+    if (!a) return;
+    var date = s.recorded_at.slice(0, 10);
+    var comp = s.competitor;
+    if (competitors.indexOf(comp) === -1) competitors.push(comp);
+    if (!seriesMap[date]) seriesMap[date] = {};
+    if (!seriesMap[date][comp]) {
+      var scores = {}; dims.forEach(function(d) { scores[d] = 0; }); scores.count = 0;
+      seriesMap[date][comp] = scores;
+    }
+    var tally = function(scripts) {
+      (scripts || []).forEach(function(sc) {
+        var mapped = dimMap[sc.type || ''];
+        if (mapped) seriesMap[date][comp][mapped] += 2;
+        seriesMap[date][comp].count++;
+      });
+    };
+    (a.sales_scripts || []).forEach(tally);
+    (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(tally); });
+  });
+  var dates = Object.keys(seriesMap).sort();
+  if (!dates.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
+  var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
+  var defaultDim = '逼单力度';
+  var datasets = competitors.map(function(comp, ci) {
+    var data = dates.map(function(d) {
+      var entry = seriesMap[d] && seriesMap[d][comp];
+      if (!entry || !entry.count) return null;
+      return Math.min(10, +(entry[defaultDim] / entry.count).toFixed(1));
+    });
+    return { label: comp, data: data, borderColor: compColors[ci % compColors.length], backgroundColor: 'transparent', tension: 0.4, pointRadius: 5, fill: false };
+  });
+  var radios = dims.map(function(d) {
+    var chk = d === defaultDim ? 'checked ' : '';
+    return '<label style=margin-right:14px;font-size:13px><input type=radio name=evoDim value=' + d + ' ' + chk + 'onchange=renderEvolutionDim(this.value)>' + d + '</label>';
+  }).join('');
+  el.innerHTML = '<div class=card><div class=card-title>策略演进 · ' + defaultDim + '（近30天）</div>' +
+    '<div style=margin:8px 0 12px><span style=font-size:13px>维度：</span>' + radios + '</div>' +
+    '<canvas id=evoCanvas height=80></canvas></div>';
+  if (_evoChart) _evoChart.destroy();
+  _evoChart = new Chart(document.getElementById('evoCanvas'), {
+    type: 'line',
+    data: { labels: dates, datasets: datasets },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+}
+function renderEvolutionDim(dim) {
+  var el = document.getElementById('evolutionContent');
+  if (!el) return;
+  var t = el.querySelector('.card-title');
+  if (t) t.textContent = '策略演进 · ' + dim + '（近30天）';
+  var dimMap = {
+    '促销逼单': '逼单力度', '暖场破冰': '逼单力度',
+    '痛点需求唤醒': '挖需深度', '开场白': '专业度', '信任背书': '专业度', '效果承诺': '专业度',
+    '服务保障': '服务保障', 'FAQ答疑': '服务保障',
+    '社会认同': '焦虑制造', '比喻说服': '焦虑制造',
+    '价值塑造': '价格诱导', '产品介绍': '价格诱导',
+  };
+  var seriesMap = {}; var competitors = [];
+  ALL.sessions.forEach(function(s) {
+    if (s.status !== 'analyzed') return;
+    var a = ALL.analyses.find(function(x) { return x.session_id === s.id; });
+    if (!a) return;
+    var date = s.recorded_at.slice(0, 10);
+    var comp = s.competitor;
+    if (competitors.indexOf(comp) === -1) competitors.push(comp);
+    if (!seriesMap[date]) seriesMap[date] = {};
+    if (!seriesMap[date][comp]) { var sc = {}; sc[dim] = 0; sc.count = 0; seriesMap[date][comp] = sc; }
+    var tally = function(scripts) {
+      (scripts || []).forEach(function(sc) {
+        var mapped = dimMap[sc.type || ''];
+        if (mapped === dim) { seriesMap[date][comp][dim] += 2; seriesMap[date][comp].count++; }
+      });
+    };
+    (a.sales_scripts || []).forEach(tally);
+    (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(tally); });
+  });
+  var dates = Object.keys(seriesMap).sort();
+  var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
+  if (!_evoChart) return;
+  _evoChart.data.datasets = competitors.map(function(comp, ci) {
+    var data = dates.map(function(d) {
+      var e = seriesMap[d] && seriesMap[d][comp];
+      if (!e || !e.count) return null;
+      return Math.min(10, +(e[dim] / e.count).toFixed(1));
+    });
+    return { label: comp, data: data, borderColor: compColors[ci % compColors.length], backgroundColor: 'transparent', tension: 0.4, pointRadius: 5, fill: false };
+  });
+  _evoChart.data.labels = dates;
+  _evoChart.update();
+}
+var _radarChart = null;
+function renderRadar() {
+  var el = document.getElementById('radarContent');
+  if (!el) return;
+  if (!ALL.sessions.length) { el.innerHTML = '<div class=empty>暂无数据</div>'; return; }
+  var typeToDim = {
+    '促销逼单': '逼单力度', '暖场破冰': '逼单力度',
+    '痛点': '挖需深度', '需求唤醒': '挖需深度',
+    '开场': '专业度', '信任背书': '专业度', '效果承诺': '专业度',
+    '服务保障': '服务保障', 'FAQ': '服务保障',
+    '社会认同': '焦虑制造', '比喻说服': '焦虑制造',
+    '价值塑造': '价格诱导', '产品介绍': '价格诱导',
+  };
+  var dims = ['逼单力度', '挖需深度', '价格诱导', '专业度', '服务保障', '焦虑制造'];
+  var compTotals = {}; var competitors = [];
+  ALL.sessions.forEach(function(s) {
+    if (s.status !== 'analyzed') return;
+    var a = ALL.analyses.find(function(x) { return x.session_id === s.id; });
+    if (!a) return;
+    var comp = s.competitor;
+    if (competitors.indexOf(comp) === -1) competitors.push(comp);
+    if (!compTotals[comp]) { var t = {}; dims.forEach(function(d) { t[d] = 0; }); t.count = 0; compTotals[comp] = t; }
+    var tally = function(scripts) {
+      (scripts || []).forEach(function(sc) {
+        var mapped = typeToDim[sc.type || ''];
+        if (mapped) compTotals[comp][mapped] += 2;
+        compTotals[comp].count++;
+      });
+    };
+    (a.sales_scripts || []).forEach(tally);
+    (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(tally); });
+  });
+  if (!competitors.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
+  var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
+  var datasets = competitors.map(function(comp, ci) {
+    var t = compTotals[comp]; var cnt = t.count || 1;
+    var data = dims.map(function(d) { return Math.min(10, +(t[d] / cnt).toFixed(1)); });
+    return { label: comp, data: data, borderColor: compColors[ci % compColors.length], backgroundColor: compColors[ci % compColors.length] + '33' };
+  });
+  el.innerHTML = '<div class=card><div class=card-title>竞品博弈图（六大维度对比）</div><canvas id=radarCanvas height=300></canvas></div><div style=font-size:12px;color:var(--text-3);margin-top:8px;text-align:center>分值0-10，数值越高该维度越突出</div>';
+  if (_radarChart) _radarChart.destroy();
+  _radarChart = new Chart(document.getElementById('radarCanvas'), {
+    type: 'radar',
+    data: { labels: dims, datasets: datasets },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { r: { min: 0, max: 10 } } }
+  });
+}
+function renderCloud() {
+  var el = document.getElementById('cloudContent');
+  if (!el) return;
+  if (!ALL.analyses.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
+  var wordCount = {};
+  var stops = '的了是在有和就等不也就很都要跟那能被会让以为应该但也或者而且所以因为如果那么什么怎么多少谁这儿';
+  var addWords = function(text) {
+    if (!text) return;
+    var words = text.match(/[一-龥]{2,4}/g) || [];
+    words.forEach(function(w) {
+      if (w.length <= 2 && stops.indexOf(w.charAt(0)) !== -1) return;
+      wordCount[w] = (wordCount[w] || 0) + 1;
+    });
+  };
+  ALL.analyses.forEach(function(a) {
+    (a.sales_scripts || []).forEach(function(sc) { addWords(sc.content || ''); });
+    (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(function(sc) { addWords(sc.content || ''); }); });
+  });
+  var sorted = Object.entries(wordCount).filter(function(e) { return e[1] >= 3; }).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 80);
+  if (!sorted.length) { el.innerHTML = '<div class=empty>暂无足够话术数据</div>'; return; }
+  var maxF = sorted[0][1], minF = sorted[sorted.length - 1][1];
+  var colorPalette = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14','#2f54d0','#389e0d'];
+  var words = sorted.map(function(e, i) {
+    var w = e[0], freq = e[1];
+    var size = 14 + Math.round((freq - minF) / Math.max(1, maxF - minF) * 36);
+    var color = colorPalette[i % colorPalette.length];
+    var weight = freq > (maxF * 0.6) ? '700' : '400';
+    return '<span style=font-size:' + size + 'px;color:' + color + ';margin:5px 7px;display:inline-block;font-weight:' + weight + ';cursor:default title=' + w + '出现' + freq + '次>' + w + '</span>';
+  }).join('');
+  el.innerHTML = '<div class=card><div class=card-title>话术关键词云（共' + sorted.length + '词，字体越大出现越频繁）</div><div style=padding:24px;text-align:center;min-height:300px;line-height:2.4>' + words + '</div></div><div style=font-size:12px;color:var(--text-3);margin-top:8px;text-align:center>仅显示出现≥3次的高频词</div>';
 }
 
 // ─── 启动 ─────────────────────────────────────────────────────────────────────
