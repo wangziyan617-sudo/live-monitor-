@@ -89,6 +89,8 @@ tr:hover td { background: #fafafa; }
 /* Detail panel */
 .detail-panel { display: none; background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.1); padding: 24px; margin-bottom: 16px; animation: slideDown .2s ease; }
 .detail-panel.open { display: block; }
+.tab-content { display: none; }
+.tab-content:first-child { display: block; } /* 默认显示第一个 */
 @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 .detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
 .detail-title { font-size: 18px; font-weight: 700; }
@@ -169,10 +171,6 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
       <select id="fComp" onchange="renderCompare()"><option value="">全部</option></select>
       <label>🔍</label>
       <input type="search" id="fSearch" placeholder="搜索…" oninput="renderCompare()">
-      <div class="export-btns">
-        <button class="btn" onclick="exportJSON()">📥 JSON</button>
-        <button class="btn" onclick="exportCSV()">📥 CSV</button>
-      </div>
     </div>
     <div id="compareContent"><div class="loading">加载中…</div></div>
   </div>
@@ -384,7 +382,199 @@ function renderCompare() {
 
   if (!sessions.length) { el.innerHTML = '<div class="empty">暂无匹配数据</div>'; return; }
 
-  el.innerHTML = `<div class="compare-grid">${sessions.map(s => buildCard(s)).join("")}</div>`;
+  // 产品视角表格
+  el.innerHTML = '<div class="card" style="margin-bottom:20px">' +
+    '<div class="card-title">📦 主推产品一览</div>' +
+    renderProductTable(sessions) +
+    '</div>';
+}
+
+function renderProductTable(sessions) {
+  if (!sessions.length) return '<div style="color:var(--text-3);font-size:13px">暂无数据</div>';
+  var rows = '';
+  sessions.forEach(function(s) {
+    var a = ALL.analyses.find(function(x) { return x.session_id === s.id; });
+    var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
+    var products = a ? (a.key_products || []) : [];
+    var day = s.recorded_at.slice(0, 10);
+    var time = s.recorded_at.slice(11, 16);
+    var dur = s.duration ? Math.round(s.duration / 60) + '分钟' : '—';
+    var persona = a ? (a.user_persona || '') : '';
+    var highlights = a ? (a.highlights || []) : [];
+
+    if (!products.length) {
+      rows += '<tr onclick="openProductDetail(null, ' + s.id + ')" style="cursor:pointer">' +
+        '<td><b>' + escHtml(s.competitor) + '</b></td>' +
+        '<td>' + day + ' ' + time + '</td>' +
+        '<td style="color:var(--text-3)">—</td><td>' + dur + '</td>' +
+        '<td><span style="color:var(--text-3);font-size:12px">暂无产品</span></td>' +
+        '<td><button class="btn btn-sm">查看详情 ▸</button></td></tr>';
+      return;
+    }
+
+    products.forEach(function(p, pi) {
+      var price = p.price ? '<span style="color:var(--red);font-weight:600">' + escHtml(p.price) + '</span>' : '—';
+      var spText = p.selling_points && p.selling_points.length
+        ? p.selling_points.slice(0, 3).map(function(sp) { return '<span class="badge" style="margin:2px">' + escHtml(sp) + '</span>'; }).join('')
+        : '<span style="color:var(--text-3);font-size:12px">—</span>';
+      rows += '<tr onclick="openProductDetail(' + pi + ', ' + s.id + ')" style="cursor:pointer">' +
+        (pi === 0 ? '<td rowspan="' + products.length + '" style="vertical-align:top"><b>' + escHtml(s.competitor) + '</b><br><span style="font-size:11px;color:var(--text-3)">' + day + ' ' + time + '</span></td>' : '') +
+        '<td><b>' + escHtml(p.name || '—') + '</b></td>' +
+        '<td>' + price + '</td>' +
+        '<td>' + dur + '</td>' +
+        '<td style="max-width:260px">' + spText + '</td>' +
+        (pi === 0 ? '<td rowspan="' + products.length + '"><button class="btn btn-sm">查看详情 ▸</button></td>' : '') +
+        '</tr>';
+    });
+  });
+
+  return '<div class="table-wrap"><table style="font-size:14px">' +
+    '<thead><tr><th>账号</th><th>主推产品</th><th>价格</th><th>时长</th><th>核心卖点</th><th></th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>';
+}
+
+// 打开产品详情面板
+function openProductDetail(productIdx, sessionId) {
+  var panel = document.getElementById("detailPanel");
+  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
+  var a = ALL.analyses.find(function(x) { return x.session_id === sessionId; });
+  var t = ALL.transcripts.find(function(x) { return x.session_id === sessionId; });
+  if (!s) return;
+
+  var products = (a && a.key_products) || [];
+  var p = productIdx !== null ? (products[productIdx] || null) : null;
+
+  // 下载话术文本
+  function makeDownload() {
+    var lines = [];
+    lines.push("账号: " + (s.competitor || ''));
+    lines.push("日期: " + (s.recorded_at || '').slice(0, 10));
+    lines.push("录制时长: " + (s.duration ? Math.round(s.duration/60) + "分钟" : "—"));
+    lines.push("═".repeat(50));
+    if (p) {
+      lines.push("【主推产品】" + (p.name || ''));
+      if (p.price) lines.push("价格: " + p.price);
+      if (p.selling_points && p.selling_points.length) lines.push("卖点: " + p.selling_points.join("；"));
+      if (p.scripts && p.scripts.length) {
+        lines.push("【话术片段】");
+        p.scripts.forEach(function(sc) { lines.push("  [" + (sc.timestamp||'') + "] " + (sc.type||'') + ": " + (sc.content||'')); });
+      }
+    }
+    if (a) {
+      if (a.sales_scripts && a.sales_scripts.length) {
+        lines.push("【全部话术片段】");
+        a.sales_scripts.forEach(function(sc) { lines.push("  [" + (sc.timestamp||'') + "] " + (sc.type||'') + ": " + (sc.content||'')); });
+      }
+      if (a.user_persona) { lines.push("【用户画像】"); lines.push(a.user_persona); }
+      if (a.strategy_summary) { lines.push("【话术策略】"); lines.push(a.strategy_summary); }
+      if (a.highlights && a.highlights.length) { lines.push("【Highlights】"); a.highlights.forEach(function(h){ lines.push("• " + h); }); }
+    }
+    if (t && t.full_text) {
+      lines.push("【完整逐字稿】");
+      lines.push(t.full_text);
+    }
+    return lines.join("\n");
+  }
+
+  var downloadContent = makeDownload();
+
+  // 逐字稿（保留时间戳）
+  var transcriptSection = t && t.full_text
+    ? ('<div id="dt-transcript" class="tab-content"><div class="section-label" style="margin-top:16px">完整逐字稿</div>' + renderTranscript(t.full_text) + '</div>')
+    : '<div id="dt-transcript" class="tab-content"><div class="empty">暂无转写文本</div></div>';
+
+  // 产品话术（如果有）
+  var productScriptSection = '';
+  if (p && p.scripts && p.scripts.length) {
+    var psGroups = groupScriptsByType(p.scripts);
+    var psHtml = '';
+    psGroups.forEach(function(g) {
+      var label = SCRIPT_TYPE_LABELS[g.type] || g.type;
+      psHtml += '<div style="margin-bottom:12px">';
+      psHtml += '<div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #eee">' + escHtml(label) + ' ×' + g.scripts.length + '</div>';
+      g.scripts.forEach(function(sc) {
+        psHtml += '<div class="script-item">' +
+          (sc.timestamp ? '<div class="script-ts">' + escHtml(sc.timestamp) + '</div>' : '') +
+          '<div class="script-content">' + escHtml(sc.content || '') + '</div></div>';
+      });
+      psHtml += '</div>';
+    });
+    productScriptSection = '<div id="dt-products-script" class="tab-content"><div class="section-label">话术要点</div>' + psHtml + '</div>';
+  } else if (a && a.sales_scripts && a.sales_scripts.length) {
+    var fallbackHtml = renderScriptGroups(a.sales_scripts);
+    productScriptSection = '<div id="dt-products-script" class="tab-content"><div class="section-label">话术要点</div>' + fallbackHtml + '</div>';
+  } else {
+    productScriptSection = '<div id="dt-products-script" class="tab-content"><div class="empty">暂无话术</div></div>';
+  }
+
+  // 产品信息
+  var productInfo = '';
+  if (p) {
+    var meta = [];
+    if (p.price) meta.push('<span class="badge r" style="font-size:13px;padding:3px 10px">¥' + escHtml(p.price) + '</span>');
+    if (p.selling_points && p.selling_points.length) {
+      p.selling_points.forEach(function(sp) { meta.push('<span class="badge" style="margin:2px">' + escHtml(sp) + '</span>'); });
+    }
+    productInfo = '<div class="section-label" style="margin-top:16px">产品信息</div>' +
+      '<div style="font-size:15px;font-weight:700;margin-bottom:6px">' + escHtml(p.name || '—') + '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">' + meta.join('') + '</div>';
+  }
+
+  panel.innerHTML = '<div class="detail-header">' +
+    '<div class="detail-title">' + escHtml(s.competitor) + ' · ' + fmtDate(s.recorded_at) + ' · ' + (s.duration ? Math.round(s.duration/60)+'分钟' : '') + (p ? ' · ' + escHtml(p.name || '') : '') + '</div>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button class="btn" onclick="downloadProductTxt(' + sessionId + ',' + productIdx + ')">📥 下载话术</button>' +
+    '<button class="btn" onclick="closeDetail()">关闭</button>' +
+    '</div></div>' +
+
+    '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+    '<button class="tab active" id="dt-tab-overview" onclick="showProductTab(\'overview\')">产品概览</button>' +
+    '<button class="tab" id="dt-tab-scripts" onclick="showProductTab(\'scripts\')">话术要点</button>' +
+    '<button class="tab" id="dt-tab-transcript" onclick="showProductTab(\'transcript\')">完整逐字稿</button>' +
+    '</div>' +
+
+    // 产品概览 tab
+    '<div id="dt-overview" class="tab-content">' +
+    productInfo +
+    (a && a.user_persona ? '<div class="section-label" style="margin-top:16px">用户画像</div><div class="persona-text">' + escHtml(a.user_persona) + '</div>' : '') +
+    (a && a.strategy_summary ? '<div class="section-label" style="margin-top:16px">话术策略</div><div class="strategy-text">' + escHtml(a.strategy_summary) + '</div>' : '') +
+    (a && a.highlights && a.highlights.length ? '<div class="section-label" style="margin-top:16px">Highlights</div>' + a.highlights.map(function(h){ return '<div class="highlight-item">• ' + escHtml(h) + '</div>'; }).join('') : '') +
+    '</div>' +
+
+    // 话术 tab
+    productScriptSection +
+
+    // 逐字稿 tab
+    transcriptSection;
+
+  // 存储下载内容
+  panel.dataset.downloadContent = downloadContent;
+  panel.classList.add("open");
+  panel.scrollIntoView({ behavior: "smooth" });
+}
+
+function showProductTab(tab) {
+  document.getElementById("dt-tab-overview") && document.getElementById("dt-tab-overview").classList.toggle("active", tab === "overview");
+  document.getElementById("dt-tab-scripts") && document.getElementById("dt-tab-scripts").classList.toggle("active", tab === "scripts");
+  document.getElementById("dt-tab-transcript") && document.getElementById("dt-tab-transcript").classList.toggle("active", tab === "transcript");
+  var ov = document.getElementById("dt-overview");
+  var sc = document.getElementById("dt-products-script");
+  var tr = document.getElementById("dt-transcript");
+  if (ov) ov.style.display = tab === "overview" ? "" : "none";
+  if (sc) sc.style.display = tab === "scripts" ? "" : "none";
+  if (tr) tr.style.display = tab === "transcript" ? "" : "none";
+}
+
+function downloadProductTxt(sessionId, productIdx) {
+  var panel = document.getElementById("detailPanel");
+  var content = panel.dataset.downloadContent || "";
+  if (!content) return;
+  var blob = new Blob(["\uFEFF" + content], {type:"text/plain;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "话术_" + sessionId + ".txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 function buildCard(s) {
@@ -483,12 +673,11 @@ function renderSessions() {
     URL.revokeObjectURL(a.href);
   }
 
-  // 生成逐字稿 HTML
+  // 生成逐字稿 HTML（保留时间戳）
   function transcriptHtml(s) {
     var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
     if (!t || !t.full_text) return '<div style="color:var(--text-3);font-size:13px;padding:20px">暂无转写文本</div>';
-    var raw = t.full_text.replace(/^\[[\d:]+\s*-->\s*[\d:]+\]\s*/gm, "");
-    return '<div class="transcript-box">' + escHtml(raw) + '</div>';
+    return '<div class="transcript-box">' + escHtml(t.full_text) + '</div>';
   }
 
   var html = '<div style="display:flex;flex-direction:column;gap:20px">';
