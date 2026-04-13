@@ -998,10 +998,18 @@ function escHtml(s) {
 }
 function fmtDate(dt) { return new Date(dt).toLocaleString("zh-CN", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }
 function fmtTime(dt) { return new Date(dt).toLocaleString("zh-CN", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }
-// 清洗价格：去掉"原价/定价/吊牌价"等前缀，只保留实际售价
+// 清洗价格：去掉"原价/定价/吊牌价"等文字，只保留实际售价
+// 例如: "82元（原价160元，半价优惠）" → "82元（半价优惠）"
 function cleanPrice(raw) {
   if (!raw) return '';
-  return String(raw).replace(/^(原|定|吊牌)?价[：:]\s*/i, '').replace(/\s*[\[\(（【\[].*?[\]\)）】\]]/g, '').trim();
+  var s = String(raw);
+  // 去掉"原价xxx元"、"吊牌价xxx"、"定价xxx"等（数字可能在元/块/份等单位前面）
+  s = s.replace(/(原|吊牌|定)价[^\d]*?(\d+[\d.]*)[元块份个]?/gi, function(m, p, num) {
+    return ''; // 整段删掉
+  });
+  // 去掉残余的空括号（如果原价那部分把括号内容清空了）
+  s = s.replace(/\s*\([（【]*\)*\)*/g, '').replace(/\s*\)[）\]]*/g, '');
+  return s.trim() || raw;
 }
 
 // ─── 启动 ─────────────────────────────────────────────────────────────────────
