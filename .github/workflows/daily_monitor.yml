@@ -31,19 +31,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 注入 Token 到看板 HTML（commit 之前执行，确保 token 进入 git 记录）
-        run: |
-          # 直接用 sed 替换占位符，避免 inject_token.py 顺序问题
-          # ${{ secrets.DASHBOARD_TOKEN }} 在 workflow 运行时展开为实际值
-          TOKEN="${{ secrets.DASHBOARD_TOKEN }}"
-          if [ -n "$TOKEN" ]; then
-            sed -i "s|<!-- GITHUB_TOKEN_PLACEHOLDER -->|const GITHUB_TOKEN = \"${TOKEN}\";|" docs/index.html
-            echo "Token 已注入 (长度: ${#TOKEN})"
-          else
-            echo "WARNING: DASHBOARD_TOKEN secret 未设置，跳过 token 注入"
-          fi
-
       - name: 安装系统依赖
+        if: env.RUN_MODE == 'full'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y \
@@ -136,7 +125,9 @@ jobs:
         if: env.RUN_MODE != 'static'
         run: python scheduler.py --phase2-only
 
-      - name: 生成静态数据文件
+      - name: 生成静态数据文件（含 token 注入）
+        env:
+          GITHUB_TOKEN: ${{ secrets.DASHBOARD_TOKEN }}
         run: python generate_static.py
 
       - name: 提交话术文档、数据库和静态页面到仓库

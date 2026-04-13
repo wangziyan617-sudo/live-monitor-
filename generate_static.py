@@ -34,10 +34,10 @@ def _parse_json_field(raw):
 def export_competitors():
     conn = get_conn()
     rows = conn.execute(
-        "SELECT id, name, douyin_id, url, created_at FROM competitors ORDER BY id"
+        "SELECT id, name, douyin_id, url, profile_url, created_at FROM competitors ORDER BY id"
     ).fetchall()
     conn.close()
-    return [{"id": r[0], "name": r[1], "douyin_id": r[2] or "", "url": r[3] or "", "created_at": r[4]} for r in rows]
+    return [{"id": r[0], "name": r[1], "douyin_id": r[2] or "", "url": r[3] or "", "profile_url": r[4] or "", "created_at": r[5]} for r in rows]
 
 
 def export_sessions():
@@ -242,12 +242,16 @@ def export_market_overview():
 # ── 静态页面 ──────────────────────────────────────────────────────────────────
 
 def build_index():
-    # 直接读取 docs/index.html 作为看板（避免维护两份 HTML）
+    # 直接读取 docs/index.html 作为看板，然后用 GITHUB_TOKEN 注入替换占位符
     index_path = _ROOT / "docs" / "index.html"
-    if index_path.exists():
-        return index_path.read_text(encoding="utf-8")
-    # 兜底
-    return """<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;text-align:center">
+    html = index_path.read_text(encoding="utf-8") if index_path.exists() else ""
+    # GITHUB_TOKEN 通过环境变量传入（CI 设置，本地运行则为空）
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if token:
+        html = html.replace("<!-- GITHUB_TOKEN_PLACEHOLDER -->",
+                            f'const GITHUB_TOKEN = "{token}";')
+        print(f"  Token injected (len={len(token)})")
+    return html or """<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;text-align:center">
 <h2>看板文件缺失</h2><p>请确保 docs/index.html 存在。</p></body></html>"""
 
 
