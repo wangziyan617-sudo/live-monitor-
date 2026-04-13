@@ -34,11 +34,18 @@ def _parse_json_field(raw):
 
 def export_competitors():
     conn = get_conn()
+    # 确保 brand/stage 列存在（向后兼容旧数据库）
+    for col, dtype in [("brand", "TEXT DEFAULT ''"), ("stage", "TEXT DEFAULT ''")]:
+        try:
+            conn.execute(f"ALTER TABLE competitors ADD COLUMN {col} {dtype}")
+        except Exception:
+            pass
     rows = conn.execute(
-        "SELECT id, name, douyin_id, url, profile_url, created_at FROM competitors ORDER BY id"
+        "SELECT id, name, douyin_id, url, profile_url, created_at, brand, stage FROM competitors ORDER BY id"
     ).fetchall()
     conn.close()
-    return [{"id": r[0], "name": r[1], "douyin_id": r[2] or "", "url": r[3] or "", "profile_url": r[4] or "", "created_at": r[5]} for r in rows]
+    return [{"id": r[0], "name": r[1], "douyin_id": r[2] or "", "url": r[3] or "", "profile_url": r[4] or "", "created_at": r[5],
+             "brand": r[6] or "", "stage": r[7] or ""} for r in rows]
 
 
 def export_sessions():
@@ -262,6 +269,22 @@ def main():
     print("[generate_static] 开始生成静态文件…")
 
     competitors = export_competitors()
+    # 合并：UI编辑保存的 brand/stage 优先级高于 DB（DB不存这两个字段）
+    committed = {}
+    committed_path = OUTPUT_DIR / "competitors.json"
+    if committed_path.exists():
+        try:
+            committed_list = json.loads(committed_path.read_text(encoding="utf-8"))
+            committed = {c["id"]: c for c in committed_list if "id" in c}
+        except Exception:
+            pass
+    # DB字段为主，补充 brand/stage（来自UI编辑）
+    for c in competitors:
+        cid = c["id"]
+        if cid in committed:
+            c["brand"] = committed[cid].get("brand") or c.get("brand") or ""
+            c["stage"] = committed[cid].get("stage") or c.get("stage") or ""
+
     sessions = export_sessions()
     analyses = export_analyses()
     transcripts = export_transcripts()

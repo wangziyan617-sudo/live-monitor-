@@ -233,6 +233,7 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
         </div>
         <button id="addBtn" class="btn pri" style="margin-top:18px" onclick="addCompetitor()">添加</button>
       </div>
+      <input id="mEditingId" type="hidden">
       <div id="mMsg" style="margin-top:10px;font-size:13px"></div>
     </div>
     <div id="manageList"><div class="loading">加载中…</div></div>
@@ -267,7 +268,7 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
 </footer>
 
 <script>
-const GITHUB_TOKEN = "GITHUB_TOKEN_PLACEHOLDER";
+<!-- GITHUB_TOKEN_PLACEHOLDER -->
 // ─── 全局数据 ─────────────────────────────────────────────────────────────────
 let ALL = {
   competitors: [], sessions: [], analyses: [], transcripts: [],
@@ -716,7 +717,7 @@ function downloadSessionTxt(sessionId) {
 	}
 
 	function saveCompetitor(name, brand, stage, userUrl, liveUrl) {
-	  var editingId = panel.dataset.editingId || null;
+	  var editingId = parseInt(document.getElementById("mEditingId").value) || null;
 	  var msg = document.getElementById("mMsg");
 	  var comps = ALL.competitors.slice();
 	  var isEditing = !!editingId;
@@ -776,7 +777,8 @@ function downloadSessionTxt(sessionId) {
 	  document.getElementById("mStage").value = c.stage || '';
 	  document.getElementById("mUrl").value = c.profile_url || '';
 	  document.getElementById("mLiveUrl").value = c.url || '';
-	  document.getElementById("mMsg").innerHTML = '<span style="color:var(--blue)">正在编辑：' + escHtml(c.name) + ' <a href="#" onclick="cancelEdit()" style="margin-left:8px">取消编辑</a></span>';
+	  document.getElementById("mEditingId").value = id;
+	  document.getElementById("mMsg").innerHTML = '<span style="color:var(--blue)">正在编辑：' + escHtml(c.name) + ' <a href="#" onclick="cancelEdit();return false" style="margin-left:8px">取消编辑</a></span>';
 	  document.getElementById("addBtn").textContent = "更新";
 	  document.getElementById("addBtn").onclick = function() { saveCompetitor(
 	    document.getElementById("mName").value.trim(),
@@ -794,9 +796,11 @@ function downloadSessionTxt(sessionId) {
 	  document.getElementById("mStage").value = '';
 	  document.getElementById("mUrl").value = '';
 	  document.getElementById("mLiveUrl").value = '';
+	  document.getElementById("mEditingId").value = '';
 	  document.getElementById("mMsg").innerHTML = '';
 	  document.getElementById("addBtn").textContent = "添加";
 	  document.getElementById("addBtn").onclick = addCompetitor;
+	  renderManage();
 	}
 
 
