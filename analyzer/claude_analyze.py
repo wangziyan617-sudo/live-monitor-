@@ -27,7 +27,7 @@ ANALYSIS_PROMPT = """以下是直播间「{name}」的转写文本：
   "key_products": [
     {{
       "name": "商品名称（品牌+产品，如'猿辅导·数学思维课'）",
-      "price": "价格（如有）",
+      "price": "现价/折扣价（如：'82元'、'31元'、'99元三科'），不要填原价/吊牌价/划线价，只填直播间实际售卖的当前价格",
       "selling_points": ["卖点1", "卖点2"],
       "scripts": [
         {{
@@ -53,7 +53,7 @@ ANALYSIS_PROMPT = """以下是直播间「{name}」的转写文本：
   ]
 }}
 
-【重要】每个主推品须附带该产品相关的话术片段（scripts字段），话术片段须有完整 timestamp。"""
+【重要】每个主推品须附带该产品相关的话术片段（scripts字段），话术片段须有完整 timestamp。price字段只填直播间实际售卖的当前价格，不要填原价、吊牌价、划线价。"""
 
 
 def analyze_transcript(transcript_text: str, competitor_name: str) -> dict:
