@@ -964,7 +964,6 @@ function renderTranscript(text) {
   bodyHtml += '<div class="transcript-box">';
   filtered.forEach(function(e, idx) {
     bodyHtml += '<div id="tseg' + idx + '" style="margin-bottom:10px;line-height:1.7">';
-    bodyHtml += '<span style="color:var(--blue);font-weight:700;flex-shrink:0;margin-right:10px;font-size:14px">[' + escHtml(e.start) + ']</span>';
     bodyHtml += '<span style="color:#333;font-size:13px">' + escHtml(e.content) + '</span>';
     bodyHtml += '</div>';
   });
