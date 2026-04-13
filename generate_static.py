@@ -246,7 +246,7 @@ def build_index():
     # 直接读取 docs/index.html 作为看板，然后用 GITHUB_TOKEN 注入替换占位符
     index_path = _ROOT / "docs" / "index.html"
     html = index_path.read_text(encoding="utf-8") if index_path.exists() else ""
-    # GITHUB_TOKEN 通过环境变量传入（CI 设置，本地运行则为空）
+    # GITHUB_TOKEN 通过环境变量传入（workflow 的 github.token，CI 运行时有值，本地为空）
     token = os.environ.get("GITHUB_TOKEN", "")
     if token:
         html = html.replace("<!-- GITHUB_TOKEN_PLACEHOLDER -->",

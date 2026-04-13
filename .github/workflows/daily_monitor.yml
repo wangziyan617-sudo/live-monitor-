@@ -126,8 +126,9 @@ jobs:
         run: python scheduler.py --phase2-only
 
       - name: 生成静态数据文件（含 token 注入）
+        # github.token 是 GitHub Actions 内置 token，不会触发 secret scanning
         env:
-          GITHUB_TOKEN: ${{ secrets.DASHBOARD_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: python generate_static.py
 
       - name: 提交话术文档、数据库和静态页面到仓库

@@ -771,7 +771,7 @@ function downloadSessionTxt(sessionId) {
 
 
 	function commitFile(path, content, cb) {
-  // GitHub API commit 需要 GITHUB_TOKEN（GitHub Pages 本身没有写入权限）
+  // GitHub API commit 需要 GITHUB_TOKEN（CI 用 github.token 注入，GitHub Pages 无写入权限）
   if (typeof GITHUB_TOKEN === 'undefined' || !GITHUB_TOKEN) {
     cb(false); return;
   }
