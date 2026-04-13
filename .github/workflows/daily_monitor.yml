@@ -6,9 +6,9 @@ on:
   workflow_dispatch:       # 支持手动触发
     inputs:
       duration:
-        description: '录制时长（秒），默认300秒（5分钟）'
+        description: '录制时长（秒），默认900秒（15分钟）'
         required: false
-        default: '300'
+        default: '900'
 
 jobs:
   monitor:
@@ -118,7 +118,7 @@ jobs:
           # libasound2-plugins 提供 ALSA->PulseAudio 桥接，让 Chromium 音频走 VirtualSink
           ALSA_PCM_CARD: pulse
           LD_PRELOAD: /usr/lib/x86_64-linux-gnu/alsa-lib/libasound_module_pcm_pulse.so
-          RECORD_DURATION: ${{ github.event.inputs.duration || '300' }}
+          RECORD_DURATION: ${{ github.event.inputs.duration || '900' }}
         run: python scheduler.py --now --duration $RECORD_DURATION
 
       - name: 生成静态数据文件
