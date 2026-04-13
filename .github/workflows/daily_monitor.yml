@@ -6,7 +6,7 @@ on:
   workflow_dispatch:       # 支持手动触发
     inputs:
       mode:
-        description: '模式：full=录制+转写+分析，static=仅重新生成静态页面'
+        description: '模式：full=录制+转写+分析，analyze=跳过录制只跑分析，static=仅生成静态页面'
         required: false
         default: 'full'
       duration:
@@ -76,11 +76,11 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: 安装 Playwright 浏览器
-        if: env.RUN_MODE != 'static'
+        if: env.RUN_MODE == 'full'
         run: playwright install chromium
 
       - name: 启动虚拟显示和音频
-        if: env.RUN_MODE != 'static'
+        if: env.RUN_MODE == 'full'
         run: |
           # 启动虚拟显示器
           Xvfb :99 -screen 0 1280x720x24 -ac &
@@ -94,7 +94,7 @@ jobs:
           sleep 1
           pactl load-module module-virtual-sink sink_name=VirtualSink || true
           pactl set-default-sink VirtualSink || true
-          # 配置 ALSA 默认走 PulseAudio（让 Chromium 的 ALSA 调用路由到 VirtualSink）
+          # 配置 ALSA 默认走 PulseAudio（让 Chromium 的音频走 VirtualSink）
           cat > ~/.asoundrc << 'EOF'
           pcm.!default {
             type pulse
@@ -112,30 +112,29 @@ jobs:
           echo "虚拟显示和音频已启动，VirtualSink = $(pactl get-default-sink)"
 
       - name: 写入抖音 Cookie
-        if: env.RUN_MODE != 'static'
+        if: env.RUN_MODE == 'full'
         env:
           DOUYIN_COOKIES: ${{ secrets.DOUYIN_COOKIES }}
         run: |
           echo "$DOUYIN_COOKIES" > config/douyin_cookies.json
           echo "Cookie 已写入 ($(wc -c < config/douyin_cookies.json) bytes)"
 
-      - name: 运行监控任务
-        if: env.RUN_MODE != 'static'
+      - name: Phase 1 - 并行录制（仅 full 模式）
+        if: env.RUN_MODE == 'full'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           MINIMAX_GROUP_ID: ${{ secrets.MINIMAX_GROUP_ID }}
           DISPLAY: ':99'
           PULSE_SINK: VirtualSink
-          # libasound2-plugins 提供 ALSA->PulseAudio 桥接，让 Chromium 音频走 VirtualSink
           ALSA_PCM_CARD: pulse
           LD_PRELOAD: /usr/lib/x86_64-linux-gnu/alsa-lib/libasound_module_pcm_pulse.so
           RECORD_DURATION: ${{ github.event.inputs.duration || '900' }}
         run: python scheduler.py --now --duration $RECORD_DURATION
 
-      - name: 修复 transcribed→analyzed 状态（MiniMax失败兜底）
-        # 兜底：在 DB 里找 transcribed 但无分析结果的会话，重新分析
-        run: python scheduler.py --reanalyze
+      - name: Phase 2 - 转写+分析已有视频（full 和 analyze 模式）
+        if: env.RUN_MODE != 'static'
+        run: python scheduler.py --phase2-only
 
       - name: 生成静态数据文件
         run: python generate_static.py
