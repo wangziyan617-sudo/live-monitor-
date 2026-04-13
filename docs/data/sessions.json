@@ -33,7 +33,7 @@
     "recorded_at": "2026-04-13 05:14:43.568929",
     "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书推荐_20260413_0459.mp4",
     "duration": 900.073,
-    "status": "transcribed"
+    "status": "analyzed"
   },
   {
     "id": 2,
@@ -51,6 +51,6 @@
     "recorded_at": "2026-04-13 05:14:39.405631",
     "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书严选_20260413_0459.mp4",
     "duration": 900.09,
-    "status": "transcribed"
+    "status": "analyzed"
   }
 ]
