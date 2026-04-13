@@ -21,7 +21,8 @@ from transcriber.whisper_transcribe import transcribe_video
 from analyzer.claude_analyze import analyze_transcript
 from storage.db import (
     init_db, get_or_create_competitor, create_session,
-    save_transcript, save_analysis, get_video_duration, Analysis, Competitor, SessionLocal
+    save_transcript, save_analysis, get_video_duration,
+    Analysis, Competitor, Session, Transcript, SessionLocal
 )
 
 
@@ -74,39 +75,56 @@ def record_one(competitor: dict, duration: int):
 
 
 # Phase 2: 单场转写 + 分析
-def transcribe_one(session_id: int, competitor_name: str, video_path: Path):
-    if not video_path or not video_path.exists():
-        print(f"[scheduler] session={session_id} 视频不存在，跳过")
-        return
+def transcribe_one(session_id: int, competitor_name: str, video_path: Path | None, skip_transcribe: bool = False):
+    db = SessionLocal()
 
-    # 转写
+    # 分析（已转写的会话只需分析，已录制的需要先转写）
     try:
-        archive_path = transcribe_video(video_path, competitor_name)
-        full_text = archive_path.read_text(encoding="utf-8")
-        save_transcript(session_id, str(archive_path), full_text)
-        print(f"[scheduler] session={session_id} 转写完成（{len(full_text)}字）")
-    except Exception as e:
-        print(f"[scheduler] session={session_id} 转写失败: {e}")
-        import traceback; traceback.print_exc()
-        return
+        if skip_transcribe:
+            # 已转写，直接取 transcript
+            t = db.query(Transcript).filter_by(session_id=session_id).first()
+            if not t or not t.full_text:
+                print(f"[scheduler] session={session_id} 无转写文本，跳过分析")
+                db.close()
+                return
+            full_text = t.full_text
+            print(f"[scheduler] session={session_id} 复用已有转写（{len(full_text)}字）")
+        else:
+            if not video_path or not video_path.exists():
+                print(f"[scheduler] session={session_id} 视频不存在，跳过")
+                db.close()
+                return
+            # 转写
+            try:
+                archive_path = transcribe_video(video_path, competitor_name)
+                full_text = archive_path.read_text(encoding="utf-8")
+                save_transcript(session_id, str(archive_path), full_text)
+                print(f"[scheduler] session={session_id} 转写完成（{len(full_text)}字）")
+            except Exception as e:
+                print(f"[scheduler] session={session_id} 转写失败: {e}")
+                import traceback; traceback.print_exc()
+                db.close()
+                return
+            # 清理视频
+            try:
+                if video_path.exists():
+                    video_path.unlink()
+                    print(f"[scheduler] 清理视频: {video_path.name}")
+            except Exception as e:
+                print(f"[scheduler] 清理视频失败（不影响）: {e}")
 
-    # 分析
-    try:
+        # 分析（所有情况都要跑）
         result = analyze_transcript(full_text, competitor_name)
         save_analysis(session_id, result)
+        s = db.query(Session).filter_by(id=session_id).first()
+        if s: s.status = "analyzed"
+        db.commit()
         print(f"[scheduler] session={session_id} 分析完成")
     except Exception as e:
         print(f"[scheduler] session={session_id} 分析失败: {e}")
         import traceback; traceback.print_exc()
-        return
-
-    # 清理视频（不再需要）
-    try:
-        if video_path.exists():
-            video_path.unlink()
-            print(f"[scheduler] 清理视频: {video_path.name}")
-    except Exception as e:
-        print(f"[scheduler] 清理视频失败（不影响）: {e}")
+    finally:
+        db.close()
 
 
 # 主调度
@@ -170,31 +188,49 @@ if __name__ == "__main__":
     # --phase2-only: 跳过录制，只跑 Phase2（转写+分析已有视频）
     if "--phase2-only" in sys.argv or "--reanalyze" in sys.argv:
         db = SessionLocal()
-        # transcribed 状态的会话（Phase2 未完成或 MiniMax 失败的兜底）
-        sessions = db.query(Session).filter_by(status="transcribed").all()
-        # 全部未分析的会话（含 recorded 但还没转写的）
-        pending = [(s.id, s.competitor.name) for s in sessions]
-        # 也包含已录制但从未转写的（recorded 状态）
+        # transcribed 状态的会话：已有转写文本，只需分析
+        transcribed = db.query(Session).filter_by(status="transcribed").all()
+        # recorded 状态的会话：已有视频，需要转写+分析
         recorded = db.query(Session).filter_by(status="recorded").all()
+
+        tasks_transcribe = []   # (session_id, name, video_path)
+        tasks_analyze = []      # (session_id, name)
+
+        for s in transcribed:
+            tasks_analyze.append((s.id, s.competitor.name))
         for s in recorded:
             has_transcript = db.query(Transcript).filter_by(session_id=s.id).first()
             if not has_transcript:
-                pending.append((s.id, s.competitor.name))
-        db.close()
+                vp = Path(s.video_path) if s.video_path else None
+                tasks_transcribe.append((s.id, s.competitor.name, vp))
 
-        if not pending:
-            print("[scheduler] 没有需要分析的视频，跳过 Phase2")
-        else:
-            print(f"[scheduler] Phase2: 并行转写+分析 {len(pending)} 个会话…")
-            with ThreadPoolExecutor(max_workers=len(pending)) as pool:
-                futures = {pool.submit(transcribe_one, sid, name, None): (sid, name)
-                           for sid, name in pending}
+        if tasks_analyze:
+            print(f"[scheduler] Phase2: 分析 {len(tasks_analyze)} 个已转写会话…")
+            with ThreadPoolExecutor(max_workers=len(tasks_analyze)) as pool:
+                futures = {pool.submit(transcribe_one, sid, name, None, True): (sid, name)
+                           for sid, name in tasks_analyze}
                 for future in as_completed(futures):
                     sid, name = futures[future]
                     try:
                         future.result()
                     except Exception as e:
                         print(f"[scheduler] session={sid}({name}) 异常: {e}")
+
+        if tasks_transcribe:
+            print(f"[scheduler] Phase2: 转写+分析 {len(tasks_transcribe)} 个已录制会话…")
+            with ThreadPoolExecutor(max_workers=len(tasks_transcribe)) as pool:
+                futures = {pool.submit(transcribe_one, sid, name, vp, False): (sid, name)
+                           for sid, name, vp in tasks_transcribe}
+                for future in as_completed(futures):
+                    sid, name = futures[future]
+                    try:
+                        future.result()
+                    except Exception as e:
+                        print(f"[scheduler] session={sid}({name}) 异常: {e}")
+
+        if not tasks_analyze and not tasks_transcribe:
+            print("[scheduler] 没有需要处理的任务，跳过 Phase2")
+        db.close()
         sys.exit(0)
 
     # --static: 只生成静态文件（不改 DB，不录制）
