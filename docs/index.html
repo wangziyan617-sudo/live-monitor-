@@ -24,12 +24,6 @@ header h1 { font-size: 18px; font-weight: 700; }
 .container { max-width: 1440px; margin: 0 auto; padding: 20px 24px; }
 
 /* Stats */
-.stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.stat-card { background: var(--card-bg); border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-.stat-num { font-size: 26px; font-weight: 700; color: var(--blue); }
-.stat-num.g { color: var(--green); }
-.stat-num.o { color: var(--orange); }
-.stat-label { font-size: 12px; color: var(--text-2); margin-top: 4px; }
 
 /* Tabs */
 .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -154,13 +148,8 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
 
 <div class="container">
 
-  <!-- 统计概览 -->
-  <div class="stats-bar" id="statsBar">
-    <div class="stat-card"><div class="stat-num" id="sComp">-</div><div class="stat-label">竞品账号</div></div>
-    <div class="stat-card"><div class="stat-num g" id="sSess">-</div><div class="stat-label">采集场次</div></div>
-    <div class="stat-card"><div class="stat-num" id="sAnalyzed">-</div><div class="stat-label">已分析</div></div>
-    <div class="stat-card"><div class="stat-num o" id="sDays">-</div><div class="stat-label">覆盖天数</div></div>
-  </div>
+  <!-- 样本账号概览 -->
+  <div id="accountsOverview" class="card" style="margin-bottom:20px"></div>
 
   <!-- 标签页 -->
   <div class="tabs">
@@ -289,13 +278,8 @@ async function init() {
     return;
   }
 
-  // 统计
-  const analyzed = ALL.sessions.filter(s => s.status === "analyzed").length;
-  const days = new Set(ALL.sessions.map(s => s.recorded_at.slice(0, 10))).size;
-  document.getElementById("sComp").textContent = ALL.competitors.length;
-  document.getElementById("sSess").textContent = ALL.sessions.length;
-  document.getElementById("sAnalyzed").textContent = analyzed;
-  document.getElementById("sDays").textContent = days;
+  // 账号概览
+  renderAccountsOverview();
   document.getElementById("lastUpdate").textContent = "数据更新: " + new Date().toLocaleString("zh-CN");
 
   // 日期选择器（首页）
@@ -327,6 +311,52 @@ async function init() {
   });
 
   renderCompare();
+}
+
+// ─── 账号概览 ─────────────────────────────────────────────────────────────────
+function renderAccountsOverview() {
+  const el = document.getElementById("accountsOverview");
+  const competitors = ALL.competitors;
+
+  if (!competitors.length) {
+    el.innerHTML = '<div class="empty">暂无账号数据</div>';
+    return;
+  }
+
+  const brands = competitors; // 每个 entry 就是一个品牌/账号
+  const total = brands.length;
+
+  // 品牌汇总行
+  let headerHtml = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">' +
+    '<div style="font-size:22px;font-weight:700;color:var(--blue)">' + total + '</div>' +
+    '<div style="font-size:14px;color:var(--text-2)">个账号</div>' +
+    '<div style="margin-left:auto;font-size:12px;color:var(--text-3)">每日北京时间 20:00 自动更新</div>' +
+    '</div>';
+
+  // 账号卡片网格
+  const cardsHtml = brands.map(function(c) {
+    // 找这个账号对应的场次
+    var sessions = ALL.sessions.filter(function(s) { return String(s.competitor_id) === String(c.id) || s.competitor === c.name; });
+    var analyzed = sessions.filter(function(s) { return s.status === "analyzed"; }).length;
+    var lastSession = sessions.length ? sessions.reduce(function(a, b) {
+      return a.recorded_at > b.recorded_at ? a : b;
+    }) : null;
+    var lastDate = lastSession ? lastSession.recorded_at.slice(0, 10) : "—";
+    var lastDuration = lastSession && lastSession.duration ? Math.round(lastSession.duration / 60) + "分钟" : "";
+
+    return '<div style="background:#fafafa;border-radius:8px;padding:14px 16px;border:1px solid #f0f0f0;min-width:180px">' +
+      '<div style="font-weight:700;font-size:15px;margin-bottom:6px;color:var(--text)">' + escHtml(c.name) + '</div>' +
+      '<div style="font-size:12px;color:var(--text-3)">' +
+      '<div>最近采集: ' + lastDate + (lastDuration ? ' · ' + lastDuration : '') + '</div>' +
+      '<div style="margin-top:2px">采集 ' + sessions.length + ' 场' +
+      (analyzed > 0 ? ' · <span style="color:var(--green);font-weight:600">' + analyzed + ' 已分析</span>' : '') +
+      '</div>' +
+      '</div>' +
+      '</div>';
+  }).join("");
+
+  el.innerHTML = headerHtml +
+    '<div style="display:flex;flex-wrap:wrap;gap:12px">' + cardsHtml + '</div>';
 }
 
 // ─── 标签切换 ─────────────────────────────────────────────────────────────────
