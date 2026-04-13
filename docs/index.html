@@ -157,8 +157,7 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
   <div class="tabs">
     <div class="tab active" id="tab-btn-compare" onclick="switchTab('compare')">首页·今日概览</div>
     <div class="tab" id="tab-btn-sessions" onclick="switchTab('sessions')">话术文本库</div>
-    <div class="tab" id="tab-btn-trend" onclick="switchTab('trend')">竞品动态</div>
-    <div class="tab" id="tab-btn-market" onclick="switchTab('market')">竞争格局</div>
+    <div class="tab" id="tab-btn-manage" onclick="switchTab('manage')">竞品管理</div>
     <div class="tab" id="tab-btn-about" onclick="switchTab('about')">说明</div>
   </div>
 
@@ -186,27 +185,30 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
       <input type="search" id="fSessSearch" placeholder="搜索账号…" oninput="renderSessions()">
     </div>
     <div id="sessionsContent"><div class="loading">加载中…</div></div>
-    <div id="detailPanel" class="detail-panel"></div>
   </div>
 
-  <!-- ── 竞品动态 ────────────────────────────────────────── -->
-  <div id="tab-trend" style="display:none">
-    <div class="filters">
-      <label>竞品</label>
-      <select id="fTrendComp" onchange="renderTrend()"><option value="">全部</option></select>
-      <label>日期范围</label>
-      <select id="fTrendRange" onchange="renderTrend()">
-        <option value="all">全部日期</option>
-        <option value="7">最近7天</option>
-        <option value="30">最近30天</option>
-      </select>
+  <!-- ── 竞品管理 ────────────────────────────────────────── -->
+  <div id="tab-manage" style="display:none">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">添加竞品账号</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">账号名称</label>
+          <input id="mName" type="text" placeholder="例如：一本官方旗舰店" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:200px">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">抖音主页链接</label>
+          <input id="mUrl" type="text" placeholder="https://www.douyin.com/user/MS4wLj..." style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:360px">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">直播间URL</label>
+          <input id="mLiveUrl" type="text" placeholder="https://live.douyin.com/数字（可选）" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:300px">
+        </div>
+        <button class="btn pri" style="margin-top:18px" onclick="addCompetitor()">添加</button>
+      </div>
+      <div id="mMsg" style="margin-top:10px;font-size:13px"></div>
     </div>
-    <div id="trendContent"><div class="loading">加载中…</div></div>
-  </div>
-
-  <!-- ── 竞争格局 ────────────────────────────────────────── -->
-  <div id="tab-market" style="display:none">
-    <div id="marketContent"><div class="loading">加载中…</div></div>
+    <div id="manageList"><div class="loading">加载中…</div></div>
   </div>
 
   <!-- ── 说明 ─────────────────────────────────────────────── -->
@@ -214,7 +216,7 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
     <div class="card">
       <div class="card-title">数据说明</div>
       <p style="font-size:13px;color:#666;line-height:1.8;margin-bottom:16px">
-        本看板展示竞品抖音直播间的每日监控数据，由 GitHub Actions 每天北京时间 11:00 自动采集更新。
+        本看板展示竞品抖音直播间的每日监控数据，由 GitHub Actions 每天北京时间 20:00 自动采集更新。
       </p>
       <div class="card-title" style="margin-top:20px">字段说明</div>
       <ul style="font-size:13px;color:#666;line-height:2.2;padding-left:20px">
@@ -223,10 +225,14 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
         <li><b>用户画像</b>：目标家长群体的特征描述</li>
         <li><b>Highlights</b>：值得关注的差异化亮点</li>
         <li><b>竞品动态</b>：对比前后场次，发现产品方向和话术策略的变化</li>
-        <li><b>竞争格局</b>：各竞品整体策略对比和用户画像差异</li>
       </ul>
     </div>
   </div>
+
+  <!-- 详情面板（放在container外，所有tab共享） -->
+  
+
+<div id="detailPanel" class="detail-panel"></div>
 </div>
 
 <footer>
@@ -353,7 +359,7 @@ function renderAccountsOverview() {
 // ─── 标签切换 ─────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   currentTab = tab;
-  const tabs = ["compare", "sessions", "trend", "market", "about"];
+  const tabs = ["compare", "sessions", "manage", "about"];
   tabs.forEach(t => {
     const btn = document.getElementById("tab-btn-" + t);
     if (btn) btn.classList.toggle("active", t === tab);
@@ -361,8 +367,7 @@ function switchTab(tab) {
     if (content) content.style.display = t === tab ? "" : "none";
   });
   if (tab === "sessions") renderSessions();
-  if (tab === "trend") renderTrend();
-  if (tab === "market") renderMarket();
+  if (tab === "manage") renderManage();
 }
 
 // ─── 首页·今日概览 ─────────────────────────────────────────────────────────────
@@ -646,56 +651,152 @@ function renderProducts(kps) {
 }
 
 // ─── 话术文本库 ────────────────────────────────────────────────────────────────
-function renderSessions() {
-  const el = document.getElementById("sessionsContent");
-  const compId = parseInt(document.getElementById("fSessComp").value) || 0;
-  const date = document.getElementById("fSessDate").value;
-  const kw = document.getElementById("fSessSearch").value.trim().toLowerCase();
 
-  let rows = ALL.sessions.slice();
-  if (compId) rows = rows.filter(function(s) { return s.competitor_id === compId; });
-  if (date) rows = rows.filter(function(s) { return s.recorded_at.startsWith(date); });
-  if (kw) rows = rows.filter(function(s) { return s.competitor.toLowerCase().indexOf(kw) !== -1; });
+	function renderSessions() {
+	  const el = document.getElementById("sessionsContent");
+	  const compId = parseInt(document.getElementById("fSessComp").value) || 0;
+	  const date = document.getElementById("fSessDate").value;
+	  const kw = document.getElementById("fSessSearch").value.trim().toLowerCase();
 
-  if (!rows.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
+	  let rows = ALL.sessions.slice();
+	  if (compId) rows = rows.filter(function(s) { return s.competitor_id === compId; });
+	  if (date) rows = rows.filter(function(s) { return s.recorded_at.startsWith(date); });
+	  if (kw) rows = rows.filter(function(s) { return s.competitor.toLowerCase().indexOf(kw) !== -1; });
 
-  // 下载原文
-  function downloadTranscript(s) {
-    var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
-    if (!t || !t.full_text) return;
-    // 去掉时间戳格式，还原纯文本
-    var raw = t.full_text.replace(/^\[[\d:]+\s*-->\s*[\d:]+\]\s*/gm, "");
-    var blob = new Blob(["\uFEFF" + raw], {type:"text/plain;charset=utf-8"});
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "逐字稿_" + s.competitor + "_" + s.recorded_at.slice(0,10) + ".txt";
-    a.click();
-    URL.revokeObjectURL(a.href);
+	  if (!rows.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
+
+	  var today = new Date().toISOString().slice(0, 10);
+	  var tbody = '';
+	  rows.forEach(function(s) {
+	    var day = s.recorded_at.slice(0, 10);
+	    var isToday = day === today;
+	    tbody += '<tr>' +
+	      '<td><b>' + escHtml(s.competitor) + '</b></td>' +
+	      '<td>' + (isToday ? '<b>' : '') + day + (isToday ? ' 📺</b>' : '') + '</td>' +
+	      '<td>' + s.recorded_at.slice(11, 16) + '</td>' +
+	      '<td>' + (s.duration ? Math.round(s.duration / 60) + '分钟' : '—') + '</td>' +
+	      '<td>' + (s.status === 'analyzed' ? '<span class="badge-status s-analyzed">已分析</span>' : s.status === 'transcribed' ? '<span class="badge-status s-transcribed">已转写</span>' : '<span class="badge-status s-recorded">已录制</span>') + '</td>' +
+	      '<td><button class="btn btn-sm" onclick="openProductDetail(null, ' + s.id + ')">查看详情</button></td>' +
+	      '<td><button class="btn btn-sm" onclick="downloadSessionTxt(' + s.id + ')">📥 下载逐字稿</button></td>' +
+	      '</tr>';
+	  });
+
+	  el.innerHTML = '<div class="card"><div class="table-wrap"><table>' +
+	    '<thead><tr><th>账号</th><th>日期</th><th>时间</th><th>时长</th><th>状态</th><th></th><th></th></tr></thead>' +
+	    '<tbody>' + tbody + '</tbody></table></div></div>';
+	}
+
+	function downloadSessionTxt(sessionId) {
+	  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
+	  var t = ALL.transcripts.find(function(x) { return x.session_id === sessionId; });
+	  if (!t || !t.full_text) return;
+	  var blob = new Blob(["\uFEFF" + t.full_text], {type:"text/plain;charset=utf-8"});
+	  var a = document.createElement("a");
+	  a.href = URL.createObjectURL(blob);
+	  a.download = "逐字稿_" + (s ? s.competitor + "_" + s.recorded_at.slice(0,10) : sessionId) + ".txt";
+	  a.click();
+	  URL.revokeObjectURL(a.href);
+	}
+
+	// ─── 竞品管理
+	function renderManage() {
+	  var el = document.getElementById("manageList");
+	  var comps = ALL.competitors;
+	  if (!comps.length) { el.innerHTML = '<div class="empty">暂无竞品，请添加</div>'; return; }
+	  var rows = comps.map(function(c) {
+	    return '<tr>' +
+	      '<td><b>' + escHtml(c.name) + '</b></td>' +
+	      '<td style="max-width:260px"><span style="font-size:12px;color:#666;word-break:break-all">' + escHtml(c.url || c.douyin_id || '—') + '</span></td>' +
+	      '<td style="white-space:nowrap">' +
+	      (c.url ? '<a href="' + escHtml(c.url) + '" target="_blank" class="btn btn-sm" style="margin-right:8px">直播↗</a>' : '') +
+	      '<button class="btn btn-sm" onclick="deleteCompetitor(' + c.id + ')" style="color:var(--red);border-color:#ffccc7">删除</button></td>' +
+	      '</tr>';
+	  }).join('');
+	  el.innerHTML = '<div class="card"><div class="card-title">当前竞品（' + comps.length + ' 个）</div>' +
+	    '<div class="table-wrap"><table><thead><tr><th>账号名称</th><th>抖音主页/直播间</th><th>操作</th></tr></thead>' +
+	    '<tbody>' + rows + '</tbody></table></div></div>';
+	}
+
+	function addCompetitor() {
+	  var name = document.getElementById("mName").value.trim();
+	  var userUrl = document.getElementById("mUrl").value.trim();
+	  var liveUrl = document.getElementById("mLiveUrl").value.trim();
+	  var msg = document.getElementById("mMsg");
+	  if (!name) { msg.innerHTML = '<span style="color:var(--red)">请输入账号名称</span>'; return; }
+	  if (!userUrl && !liveUrl) { msg.innerHTML = '<span style="color:var(--red)">请提供抖音主页链接或直播间链接</span>'; return; }
+	  var finalLiveUrl = liveUrl || 'https://live.douyin.com/待补充';
+	  saveCompetitor(name, userUrl, finalLiveUrl);
+	}
+
+	function saveCompetitor(name, douyinUrl, liveUrl) {
+	  var msg = document.getElementById("mMsg");
+	  var comps = ALL.competitors.slice();
+	  if (comps.some(function(c) { return c.name === name; })) {
+	    msg.innerHTML = '<span style="color:var(--orange)">该账号已存在</span>'; return;
+	  }
+	  var maxId = comps.reduce(function(m, c) { return Math.max(m, c.id || 0); }, 0);
+	  comps.push({ id: maxId + 1, name: name, douyin_id: douyinUrl || '', url: liveUrl });
+	  ALL.competitors = comps;
+	  var fileContent = JSON.stringify(comps, null, 2);
+	  commitFile('docs/data/competitors.json', fileContent, function(ok) {
+	    var mEl = document.getElementById("mMsg");
+	    if (ok) {
+	      mEl.innerHTML = '<span style="color:var(--green)">✅ 已添加！下次CI将自动采集。</span>';
+	      document.getElementById("mName").value = '';
+	      document.getElementById("mUrl").value = '';
+	      document.getElementById("mLiveUrl").value = '';
+	      renderManage();
+	    } else {
+	      // GitHub Pages 无法直接写仓库，引导用户手动编辑
+	      var blob = new Blob([fileContent], {type:"application/json"});
+	      var a = document.createElement("a");
+	      a.href = URL.createObjectURL(blob);
+	      a.download = 'competitors.json';
+	      a.click();
+	      URL.revokeObjectURL(a.href);
+	      mEl.innerHTML = '<span style="color:var(--orange)">⚠️ GitHub Pages 无写入权限。请下载 JSON，复制到 <b>docs/data/competitors.json</b>，然后 GitHub 上提交。</span>';
+	    }
+	  });
+	}
+
+	function deleteCompetitor(id) {
+	  if (!confirm('确定删除该竞品？')) return;
+	  var comps = ALL.competitors.filter(function(c) { return c.id !== id; });
+	  ALL.competitors = comps;
+	  commitFile('docs/data/competitors.json', JSON.stringify(comps, null, 2), function(ok) {
+	    if (ok) renderManage();
+	    else alert('删除失败，请手动编辑 docs/data/competitors.json');
+	  });
+	}
+
+	function commitFile(path, content, cb) {
+  // GitHub API commit 需要 GITHUB_TOKEN（GitHub Pages 本身没有写入权限）
+  if (typeof GITHUB_TOKEN === 'undefined' || !GITHUB_TOKEN) {
+    cb(false); return;
   }
+	  var repo = 'wangziyan617-sudo/live-monitor-';
+	  var branch = 'main';
+	  var encodedContent = btoa(unescape(encodeURIComponent(content)));
+	  var sha = null;
+	  function doCommit() {
+	    var body = { message: 'chore: 更新竞品列表', content: encodedContent, branch: branch };
+	    if (sha) body.sha = sha;
+	    fetch('https://api.github.com/repos/' + repo + '/contents/' + path, {
+	      method: 'PUT',
+	      headers: { 'Authorization': 'token ' + GITHUB_TOKEN, 'Content-Type': 'application/json' },
+	      body: JSON.stringify(body)
+	    }).then(function(r) { return r.json(); }).then(function(data) {
+	      cb(!data.message);
+	    }).catch(function() { cb(false); });
+	  }
+	  fetch('https://api.github.com/repos/' + repo + '/contents/' + path + '?ref=' + branch, {
+	    headers: { 'Authorization': 'token ' + GITHUB_TOKEN }
+	  }).then(function(r) { return r.json(); }).then(function(data) {
+	    if (data.sha) sha = data.sha;
+	    doCommit();
+	  }).catch(function() { doCommit(); });
+	}
 
-  // 生成逐字稿 HTML（保留时间戳）
-  function transcriptHtml(s) {
-    var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
-    if (!t || !t.full_text) return '<div style="color:var(--text-3);font-size:13px;padding:20px">暂无转写文本</div>';
-    return '<div class="transcript-box">' + escHtml(t.full_text) + '</div>';
-  }
-
-  var html = '<div style="display:flex;flex-direction:column;gap:20px">';
-  rows.forEach(function(s) {
-    var day = s.recorded_at.slice(0, 10);
-    html += '<div class="card">';
-    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">';
-    html += '<span style="font-size:16px;font-weight:700">' + escHtml(s.competitor) + '</span>';
-    html += '<span style="font-size:13px;color:var(--text-3)">' + day + ' ' + s.recorded_at.slice(11,16) + '</span>';
-    if (s.duration) html += '<span class="badge" style="font-size:12px">' + Math.round(s.duration/60) + '分钟</span>';
-    html += '<button class="btn" style="margin-left:auto" onclick="(' + downloadTranscript.toString() + ')(' + JSON.stringify(s).replace(/'/g, "\\'") + ')">📥 下载逐字稿</button>';
-    html += '</div>';
-    html += transcriptHtml(s);
-    html += '</div>';
-  });
-  html += '</div>';
-  el.innerHTML = html;
-}
 
 // ─── 竞品动态 ─────────────────────────────────────────────────────────────────
 function renderTrend() {
