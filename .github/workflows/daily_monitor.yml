@@ -134,9 +134,9 @@ jobs:
           git config user.name "live-monitor-bot"
           git config user.email "bot@live-monitor"
           mkdir -p storage/archive
-          # 提交话术归档、数据库
-          git add storage/archive/ storage/data.db || true
-          # 提交静态页面（docs/index.html + docs/data/*.json）
+          # inject_token.py 已修改 docs/index.html，重新 stage
           git add docs/ || true
+          # stage storage
+          git add storage/archive/ storage/data.db || true
           git diff --staged --quiet || git commit -m "📝 $(date '+%Y-%m-%d') 话术归档 + 静态页面"
           git push || echo "没有新内容需要推送"
