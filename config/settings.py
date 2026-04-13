@@ -7,7 +7,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent.parent
 
 # 录屏配置
-RECORD_DURATION_SECONDS = 600  # 每个直播间录制10分钟
+RECORD_DURATION_SECONDS = 300  # 每个直播间录制5分钟（保证转写分析有足够时间）
 RECORD_OUTPUT_DIR = BASE_DIR / "storage" / "videos"
 ARCHIVE_DIR = BASE_DIR / "storage" / "archive"
 DB_PATH = BASE_DIR / "storage" / "data.db"
