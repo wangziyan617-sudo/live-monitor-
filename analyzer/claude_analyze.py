@@ -125,12 +125,35 @@ def analyze_transcript(transcript_text: str, competitor_name: str) -> dict:
         raw = groq_resp.choices[0].message.content.strip()
         provider = "Groq"
 
-    if "```json" in raw:
-        raw = raw.split("```json")[1].split("```")[0].strip()
-    elif "```" in raw:
-        raw = raw.split("```")[1].split("```")[0].strip()
+    # MiniMax 可能返回无效JSON但HTTP成功，需要 Groq 兜底
+    if provider == "MiniMax":
+        try:
+            if "```json" in raw:
+                raw = raw.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw:
+                raw = raw.split("```")[1].split("```")[0].strip()
+            result = json.loads(raw)
+        except (json.JSONDecodeError, KeyError) as parse_err:
+            print(f"[analyzer] MiniMax JSON解析失败 '{parse_err}'，尝试 Groq 兜底...")
+            groq_key = os.getenv("GROQ_API_KEY", "")
+            if groq_key:
+                groq_client = Groq(api_key=groq_key)
+                groq_resp = groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=messages,
+                    temperature=0.1,
+                )
+                raw = groq_resp.choices[0].message.content.strip()
+                provider = "Groq (JSON兜底)"
+            else:
+                raise parse_err
+    else:
+        if "```json" in raw:
+            raw = raw.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw:
+            raw = raw.split("```")[1].split("```")[0].strip()
+        result = json.loads(raw)
 
-    result = json.loads(raw)
     print(f"[analyzer] 分析完成（{provider}），主推品: {len(result.get('key_products', []))} 个")
     return result
 
