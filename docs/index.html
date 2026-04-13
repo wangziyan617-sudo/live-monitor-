@@ -714,11 +714,12 @@ function downloadSessionTxt(sessionId) {
 	  var editingId = panel.dataset.editingId || null;
 	  var msg = document.getElementById("mMsg");
 	  var comps = ALL.competitors.slice();
-	  if (editingId) {
+	  var isEditing = !!editingId;
+	  if (isEditing) {
 	    // 更新现有
 	    comps = comps.map(function(c) {
 	      if (c.id === editingId) {
-	        c.name = name; c.brand = brand; c.profile_url = userUrl; c.url = liveUrl;
+	        c.name = name; c.brand = brand; c.stage = stage; c.profile_url = userUrl; c.url = liveUrl;
 	      }
 	      return c;
 	    });
@@ -734,7 +735,7 @@ function downloadSessionTxt(sessionId) {
 	  commitFile('docs/data/competitors.json', fileContent, function(ok) {
 	    var mEl = document.getElementById("mMsg");
 	    if (ok) {
-	      mEl.innerHTML = '<span style="color:var(--green)">✅ 已添加！下次CI将自动采集。</span>';
+	      mEl.innerHTML = '<span style="color:var(--green)">✅ ' + (isEditing ? '已更新' : '已添加') + '！下次CI将自动采集。</span>';
 	      document.getElementById("mName").value = '';
 	      document.getElementById("mUrl").value = '';
 	      document.getElementById("mLiveUrl").value = '';
@@ -802,10 +803,10 @@ function downloadSessionTxt(sessionId) {
 	  var repo = 'wangziyan617-sudo/live-monitor-';
 	  var branch = 'main';
 	  var encodedContent = btoa(unescape(encodeURIComponent(content)));
-	  var sha = null;
+	  var _fileSha = null;
 	  function doCommit() {
 	    var body = { message: 'chore: 更新竞品列表', content: encodedContent, branch: branch };
-	    if (sha) body.sha = sha;
+	    if (_fileSha) body.sha = _fileSha;
 	    fetch('https://api.github.com/repos/' + repo + '/contents/' + path, {
 	      method: 'PUT',
 	      headers: { 'Authorization': 'token ' + GITHUB_TOKEN, 'Content-Type': 'application/json' },
@@ -817,7 +818,7 @@ function downloadSessionTxt(sessionId) {
 	  fetch('https://api.github.com/repos/' + repo + '/contents/' + path + '?ref=' + branch, {
 	    headers: { 'Authorization': 'token ' + GITHUB_TOKEN }
 	  }).then(function(r) { return r.json(); }).then(function(data) {
-	    if (data.sha) sha = data.sha;
+	    if (data.sha) _fileSha = data.sha;
 	    doCommit();
 	  }).catch(function() { doCommit(); });
 	}
@@ -952,22 +953,14 @@ function renderTranscript(text) {
   if (entries.length === 0) {
     return '<div class="transcript-box">' + escHtml(text) + '</div>';
   }
-  // 每5分钟保留一个节点（掐头去尾，同窗口内取第一个）
-  var seen5min = {};
-  var filtered = entries.filter(function(e) {
-    var parts = e.start.split(":");
-    var totalSec = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-    var window = Math.floor(totalSec / 300); // 5分钟一个窗口
-    if (seen5min[window]) return false;
-    seen5min[window] = true;
-    return true;
-  });
+  // 保留全部逐字稿（不过滤）
+  var filtered = entries;
 
   var tocHtml = '';
   filtered.forEach(function(e, idx) {
     tocHtml += '<a href="#tseg' + idx + '" style="display:inline-block;background:#f0f5ff;color:var(--blue);border-radius:4px;padding:1px 8px;font-size:12px;margin:2px;text-decoration:none">' + escHtml(e.start) + '</a>';
   });
-  var bodyHtml = '<div style="margin-bottom:16px;padding:10px;background:#fafafa;border-radius:6px;font-size:12px;color:var(--text-2)">时间节点（每5分钟）：' + tocHtml + '</div>';
+  var bodyHtml = '<div style="margin-bottom:16px;padding:10px;background:#fafafa;border-radius:6px;font-size:12px;color:var(--text-2)">时间节点：' + tocHtml + '</div>';
   bodyHtml += '<div class="transcript-box">';
   filtered.forEach(function(e, idx) {
     bodyHtml += '<div id="tseg' + idx + '" style="margin-bottom:10px;line-height:1.7">';
