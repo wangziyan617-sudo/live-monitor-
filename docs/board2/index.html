@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>竞品直播间监控看板 · 语文/数学/英语</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue: #1677ff; --blue-dark: #0958d9;
+  --green: #52c41a; --orange: #fa8c16; --red: #f5222d;
+  --bg: #f0f2f5; --card-bg: #fff;
+  --border: #e8e8e8; --text: #1a1a1a;
+  --text-2: #666; --text-3: #999;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+a { color: var(--blue); text-decoration: none; }
+a:hover { color: var(--blue-dark); }
+
+/* Header */
+header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+header h1 { font-size: 18px; font-weight: 700; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.container { max-width: 1440px; margin: 0 auto; padding: 20px 24px; }
+
+/* Stats */
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab { padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--text-2); border: 1px solid var(--border); background: var(--card-bg); transition: all .15s; white-space: nowrap; }
+.tab:hover { border-color: var(--blue); color: var(--blue); }
+.tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* Filters */
+.filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; background: var(--card-bg); padding: 12px 16px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.filters label { font-size: 13px; color: var(--text-2); font-weight: 500; white-space: nowrap; }
+.filters select, .filters input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+.filters select:focus, .filters input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
+.filters input[type="search"] { min-width: 160px; }
+.export-btns { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer; font-size: 13px; color: var(--text); transition: all .15s; white-space: nowrap; }
+.btn:hover { border-color: var(--blue); color: var(--blue); }
+.btn.pri { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn.pri:hover { background: var(--blue-dark); }
+.btn-sm { padding: 3px 10px; font-size: 12px; }
+
+/* Cards */
+.card { background: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #333; }
+
+/* Compare grid */
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.competitor-card { background: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); border-top: 3px solid var(--blue); transition: box-shadow .15s; }
+.competitor-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+.competitor-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+.competitor-meta { font-size: 11px; color: var(--text-3); margin-bottom: 12px; }
+.section-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .6px; margin: 14px 0 6px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+
+/* Product */
+.product-item { border: 1px solid #eee; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+.product-name { font-weight: 600; font-size: 14px; }
+.product-price { color: var(--red); font-size: 13px; font-weight: 600; margin: 3px 0; }
+.product-meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+.badge { display: inline-block; background: #f0f5ff; color: var(--blue); border-radius: 4px; padding: 1px 7px; font-size: 12px; }
+.badge.g { background: #f6ffed; color: var(--green); }
+.badge.o { background: #fff7e6; color: var(--orange); }
+.badge.r { background: #fff1f0; color: var(--red); }
+.product-points { font-size: 12px; color: #666; line-height: 1.6; margin-top: 4px; }
+
+/* Highlights */
+.highlight-item { font-size: 13px; color: var(--text-2); padding: 5px 0; line-height: 1.5; border-bottom: 1px dashed #f0f0f0; }
+.highlight-item:last-child { border-bottom: none; }
+.persona-text, .strategy-text { font-size: 13px; color: #444; line-height: 1.7; }
+.strategy-text { background: #fafafa; padding: 10px 12px; border-radius: 6px; }
+
+/* Sessions table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; padding: 10px 12px; background: #fafafa; border-bottom: 2px solid #f0f0f0; color: var(--text-2); font-weight: 500; font-size: 13px; white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; vertical-align: top; }
+tr:hover td { background: #fafafa; }
+.badge-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+.s-analyzed { background: #f6ffed; color: var(--green); }
+.s-transcribed { background: #e6f7ff; color: var(--blue); }
+.s-recorded { background: #fff7e6; color: var(--orange); }
+
+/* Detail panel */
+.detail-panel { display: none; background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.1); padding: 24px; margin-bottom: 16px; animation: slideDown .2s ease; }
+.detail-panel.open { display: block; }
+.tab-content { display: none; }
+.tab-active { display: block; } /* JS 控制显示 */
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+.detail-title { font-size: 18px; font-weight: 700; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 800px) { .detail-grid { grid-template-columns: 1fr; } }
+
+/* Scripts */
+.script-item { background: #fafafa; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid var(--blue); }
+.script-type { font-size: 11px; color: var(--blue); font-weight: 600; margin-bottom: 4px; }
+.script-content { font-size: 13px; color: #333; line-height: 1.6; }
+.script-ts { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+/* Transcript */
+.transcript-box { background: #fafafa; border-radius: 8px; padding: 16px; font-size: 13px; line-height: 1.8; color: #444; max-height: 500px; overflow-y: auto; white-space: pre-wrap; font-family: ui-monospace, monospace; }
+
+/* Scripts archive table */
+.archive-link { color: var(--blue); font-size: 13px; word-break: break-all; }
+.archive-link:hover { text-decoration: underline; }
+
+/* Trend table */
+.trend-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.trend-table th { background: #fafafa; padding: 10px 12px; text-align: left; border-bottom: 2px solid #f0f0f0; color: var(--text-2); font-weight: 500; white-space: nowrap; }
+.trend-table td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; vertical-align: top; }
+.trend-table tr:hover td { background: #fafafa; }
+.change-new { background: #f6ffed; color: var(--green); border-radius: 4px; padding: 1px 6px; font-size: 12px; font-weight: 600; }
+.change-gone { background: #fff1f0; color: var(--red); border-radius: 4px; padding: 1px 6px; font-size: 12px; font-weight: 600; }
+
+/* Market overview */
+.overview-card { background: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); border-top: 3px solid var(--blue); margin-bottom: 16px; }
+.overview-comp { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.overview-meta { font-size: 12px; color: var(--text-3); margin-bottom: 12px; }
+
+/* Empty / Loading */
+.empty, .loading { text-align: center; padding: 50px 20px; color: var(--text-3); font-size: 14px; }
+.err-panel { background: #fff1f0; border: 1px solid #ffccc7; border-radius: 8px; padding: 16px; margin: 8px 0; font-size: 13px; color: var(--red); }
+
+/* Footer */
+footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3); }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .container { padding: 12px; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .header-right { margin-left: 0; width: 100%; justify-content: flex-end; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>竞品直播间监控看板 · 语文/数学/英语</h1>
+  <div class="header-right">
+    <span id="lastUpdate" style="font-size:12px;color:var(--text-3)"></span>
+    <button class="btn" onclick="location.reload()">刷新</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- 样本账号概览 -->
+  <div id="accountsOverview" class="card" style="margin-bottom:20px"></div>
+
+  <!-- 标签页 -->
+  <div class="tabs">
+    <div class="tab active" id="tab-btn-compare" onclick="switchTab('compare')">首页·今日概览</div>
+    <div class="tab" id="tab-btn-sessions" onclick="switchTab('sessions')">话术文本库</div>
+    <div class="tab" id="tab-btn-manage" onclick="switchTab('manage')">竞品管理</div>
+    <div class="tab" id="tab-btn-evolution" onclick="switchTab('evolution')">策略演进</div>
+    <div class="tab" id="tab-btn-radar" onclick="switchTab('radar')">竞品博弈</div>
+    <div class="tab" id="tab-btn-cloud" onclick="switchTab('cloud')">话术词云</div>
+    <div class="tab" id="tab-btn-about" onclick="switchTab('about')">说明</div>
+  </div>
+
+  <!-- ── 首页·今日概览 ─────────────────────────────────────── -->
+  <div id="tab-compare">
+    <div class="filters">
+      <label>日期</label>
+      <select id="fDate" onchange="renderCompare()"><option value="">全部日期</option></select>
+      <label>竞品</label>
+      <select id="fComp" onchange="renderCompare()"><option value="">全部</option></select>
+      <label>🔍</label>
+      <input type="search" id="fSearch" placeholder="搜索…" oninput="renderCompare()">
+    </div>
+    <div id="compareContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 策略演进图 ─────────────────────────────────────── -->
+  <div id="tab-evolution" style="display:none">
+    <div id="evolutionContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 竞品博弈雷达图 ───────────────────────────────────── -->
+  <div id="tab-radar" style="display:none">
+    <div id="radarContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 话术词云 ─────────────────────────────────────── -->
+  <div id="tab-cloud" style="display:none">
+    <div id="cloudContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 话术文本库 ───────────────────────────────────────── -->
+  <div id="tab-sessions" style="display:none">
+    <div class="filters">
+      <label>账号</label>
+      <select id="fSessComp" onchange="renderSessions()"><option value="">全部</option></select>
+      <label>日期</label>
+      <select id="fSessDate" onchange="renderSessions()"><option value="">全部</option></select>
+      <label>🔍</label>
+      <input type="search" id="fSessSearch" placeholder="搜索账号…" oninput="renderSessions()">
+    </div>
+    <div id="sessionsContent"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 竞品管理 ────────────────────────────────────────── -->
+  <div id="tab-manage" style="display:none">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">添加竞品账号</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">品牌</label>
+          <input id="mStage" type="text" placeholder="如：小学">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">品牌</label>
+          <input id="mBrand" type="text" placeholder="例如：一本" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:140px">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">账号名称</label>
+          <input id="mName" type="text" placeholder="例如：一本官方旗舰店" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:180px">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">抖音主页链接</label>
+          <input id="mUrl" type="text" placeholder="https://www.douyin.com/user/MS4wLj..." style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:360px">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">直播间URL</label>
+          <input id="mLiveUrl" type="text" placeholder="https://live.douyin.com/数字（可选）" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:300px">
+        </div>
+        <button id="addBtn" class="btn pri" style="margin-top:18px" onclick="addCompetitor()">添加</button>
+      </div>
+      <input id="mEditingId" type="hidden">
+      <div id="mMsg" style="margin-top:10px;font-size:13px"></div>
+    </div>
+    <div id="manageList"><div class="loading">加载中…</div></div>
+  </div>
+
+  <!-- ── 说明 ─────────────────────────────────────────────── -->
+  <div id="tab-about" style="display:none">
+    <div class="card">
+      <div class="card-title">数据说明</div>
+      <p style="font-size:13px;color:#666;line-height:1.8;margin-bottom:16px">
+        本看板展示竞品抖音直播间的每日监控数据，由 GitHub Actions 每天北京时间 20:00 自动采集更新。（第二看板：语文/数学/英语竞品）
+      </p>
+      <div class="card-title" style="margin-top:20px">字段说明</div>
+      <ul style="font-size:13px;color:#666;line-height:2.2;padding-left:20px">
+        <li><b>主推品</b>：直播间重点推广的课程产品，含价格、上课时间、课程节数、赠品等</li>
+        <li><b>话术策略</b>：主播的核心转化逻辑和痛点设计</li>
+        <li><b>用户画像</b>：目标家长群体的特征描述</li>
+        <li><b>Highlights</b>：值得关注的差异化亮点</li>
+        <li><b>竞品动态</b>：对比前后场次，发现产品方向和话术策略的变化</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 详情面板（放在container外，所有tab共享） -->
+  
+
+<div id="detailPanel" class="detail-panel"></div>
+</div>
+
+<footer>
+  数据来源：抖音直播间自动录制转写 · <a href="https://github.com/wangziyan617-sudo/live-monitor-" target="_blank">GitHub</a>
+</footer>
+
+<script>
+<!-- GITHUB_TOKEN_PLACEHOLDER -->
+// ─── 全局数据 ─────────────────────────────────────────────────────────────────
+let ALL = {
+  competitors: [], sessions: [], analyses: [], transcripts: [],
+  compare: { dates: [], latest_day: "", competitors_on_day: [] },
+  trend: { days: [], competitors: [], trend: {} },
+  market: [],
+};
+let currentTab = "compare";
+
+const STATUS_LABEL = { recorded: "已录制", transcribed: "已转写", analyzed: "已分析" };
+const STATUS_CLASS = { recorded: "s-recorded", transcribed: "s-transcribed", analyzed: "s-analyzed" };
+// 安全数组：非数组真值返回空数组，避免 forEach 崩溃
+var safeArr = function(a) { return Array.isArray(a) ? a : []; };
+
+// ─── 初始化 ───────────────────────────────────────────────────────────────────
+async function init() {
+  let errMsg = "";
+  try {
+    const [comp, sess, analy, trans, compData, trend, market] = await Promise.all([
+      fetch("../data2/competitors.json").then(r => { if (!r.ok) throw new Error("competitors.json 加载失败"); return r.json(); }),
+      fetch("../data2/sessions.json").then(r => { if (!r.ok) throw new Error("sessions.json 加载失败"); return r.json(); }),
+      fetch("../data2/analyses.json").then(r => { if (!r.ok) throw new Error("analyses.json 加载失败"); return r.json(); }),
+      fetch("../data2/transcripts.json").then(r => { if (!r.ok) throw new Error("transcripts.json 加载失败"); return r.json(); }),
+      fetch("../data2/compare.json").then(r => { if (!r.ok) throw new Error("compare.json 加载失败"); return r.json(); }),
+      fetch("../data2/trend.json").then(r => { if (!r.ok) throw new Error("trend.json 加载失败"); return r.json(); }),
+      fetch("../data2/market.json").then(r => { if (!r.ok) throw new Error("market.json 加载失败"); return r.json(); }),
+    ]);
+    ALL = { competitors: comp, sessions: sess, analyses: analy, transcripts: trans,
+            compare: compData, trend, market };
+  } catch (e) {
+    errMsg = "数据加载失败: " + e.message;
+    document.querySelectorAll("[id$='Content'], #compareContent, #sessionsContent, #trendContent, #marketContent")
+      .forEach(el => { el.innerHTML = '<div class="err-panel">' + escHtml(errMsg) + '</div>'; });
+    console.error(e);
+    return;
+  }
+
+  // 账号概览
+  renderAccountsOverview();
+  document.getElementById("lastUpdate").textContent = "数据更新: " + new Date().toLocaleString("zh-CN");
+
+  // 日期选择器（首页）
+  const dates = ALL.compare.dates;
+  const fDate = document.getElementById("fDate");
+  dates.forEach(d => {
+    const o = document.createElement("option"); o.value = d; o.textContent = d;
+    if (d === ALL.compare.latest_day) o.selected = true;
+    fDate.appendChild(o);
+  });
+
+  // 竞品选择器（首页）
+  ALL.competitors.forEach(c => {
+    ["fComp", "fSessComp", "fTrendComp"].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      if (![...sel.options].find(o => o.value === String(c.id))) {
+        const o = document.createElement("option"); o.value = c.id; o.textContent = c.name;
+        sel.appendChild(o);
+      }
+    });
+  });
+
+  // 话术库日期选择器
+  const allDates = [...new Set(ALL.sessions.map(s => s.recorded_at.slice(0, 10)))].sort().reverse();
+  const fSessDate = document.getElementById("fSessDate");
+  allDates.forEach(d => {
+    const o = document.createElement("option"); o.value = d; o.textContent = d; fSessDate.appendChild(o);
+  });
+
+  renderCompare();
+}
+
+// ─── 账号概览 ─────────────────────────────────────────────────────────────────
+function renderAccountsOverview() {
+  const el = document.getElementById("accountsOverview");
+  const competitors = ALL.competitors;
+
+  if (!competitors.length) {
+    el.innerHTML = '<div class="empty">暂无账号数据</div>';
+    return;
+  }
+
+  const brands = competitors; // 每个 entry 就是一个品牌/账号
+  const total = brands.length;
+
+  // 品牌汇总行
+  let headerHtml = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">' +
+    '<div style="font-size:22px;font-weight:700;color:var(--blue)">' + total + '</div>' +
+    '<div style="font-size:14px;color:var(--text-2)">个账号</div>' +
+    '<div style="margin-left:auto;font-size:12px;color:var(--text-3)">每日北京时间 08:00 自动更新</div>' +
+    '</div>';
+
+  // 账号卡片网格
+  const cardsHtml = brands.map(function(c) {
+    // 找这个账号对应的场次
+    var sessions = ALL.sessions.filter(function(s) { return String(s.competitor_id) === String(c.id) || s.competitor === c.name; });
+    var analyzed = sessions.filter(function(s) { return s.status === "analyzed"; }).length;
+    var lastSession = sessions.length ? sessions.reduce(function(a, b) {
+      return a.recorded_at > b.recorded_at ? a : b;
+    }) : null;
+    var lastDate = lastSession ? lastSession.recorded_at.slice(0, 10) : "—";
+    var lastDuration = lastSession && lastSession.duration ? Math.round(lastSession.duration / 60) + "分钟" : "";
+
+    return '<div style="background:#fafafa;border-radius:8px;padding:14px 16px;border:1px solid #f0f0f0;min-width:180px">' +
+      '<div style="font-weight:700;font-size:15px;margin-bottom:6px;color:var(--text)">' + escHtml(c.name) + '</div>' +
+      '<div style="font-size:12px;color:var(--text-3)">' +
+      '<div>最近采集: ' + lastDate + (lastDuration ? ' · ' + lastDuration : '') + '</div>' +
+      '<div style="margin-top:2px">采集 ' + sessions.length + ' 场' +
+      (analyzed > 0 ? ' · <span style="color:var(--green);font-weight:600">' + analyzed + ' 已分析</span>' : '') +
+      '</div>' +
+      '</div>' +
+      '</div>';
+  }).join("");
+
+  el.innerHTML = headerHtml +
+    '<div style="display:flex;flex-wrap:wrap;gap:12px">' + cardsHtml + '</div>';
+}
+
+// ─── 标签切换 ─────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  const tabs = ["compare", "evolution", "radar", "cloud", "sessions", "manage", "about"];
+  tabs.forEach(t => {
+    const btn = document.getElementById("tab-btn-" + t);
+    if (btn) btn.classList.toggle("active", t === tab);
+    const content = document.getElementById("tab-" + t);
+    if (content) content.style.display = t === tab ? "" : "none";
+  });
+  if (tab === "sessions") renderSessions();
+  if (tab === "manage") renderManage();
+  if (tab === "evolution") renderEvolution();
+  if (tab === "radar") renderRadar();
+  if (tab === "cloud") renderCloud();
+  closeDetail();
+}
+
+// ─── 首页·今日概览 ─────────────────────────────────────────────────────────────
+function renderCompare() {
+  const el = document.getElementById("compareContent");
+  const date = document.getElementById("fDate").value;
+  const compId = parseInt(document.getElementById("fComp").value) || 0;
+  const kw = document.getElementById("fSearch").value.trim().toLowerCase();
+
+  let sessions = ALL.sessions.filter(s => s.status === "analyzed");
+  if (date) sessions = sessions.filter(s => s.recorded_at.startsWith(date));
+  if (compId) sessions = sessions.filter(s => s.competitor_id === compId);
+  if (kw) sessions = sessions.filter(s =>
+    s.competitor.includes(kw) ||
+    (ALL.analyses.find(a => a.session_id === s.id)?.key_products.some(p => p.name?.includes(kw)))
+  );
+
+  if (!sessions.length) { el.innerHTML = '<div class="empty">暂无匹配数据</div>'; return; }
+
+  // 产品视角表格
+  el.innerHTML = '<div class="card" style="margin-bottom:20px">' +
+    '<div class="card-title">📦 主推产品一览</div>' +
+    renderProductTable(sessions) +
+    '</div>';
+}
+
+function renderProductTable(sessions) {
+  if (!sessions.length) return '<div style="color:var(--text-3);font-size:13px">暂无数据</div>';
+  var rows = '';
+  sessions.forEach(function(s) {
+    var a = ALL.analyses.find(function(x) { return x.session_id === s.id; });
+    var t = ALL.transcripts.find(function(x) { return x.session_id === s.id; });
+    var products = a ? (a.key_products || []) : [];
+    var day = s.recorded_at.slice(0, 10);
+    var time = s.recorded_at.slice(11, 16);
+    var dur = s.duration ? Math.round(s.duration / 60) + '分钟' : '—';
+    var persona = a ? (a.user_persona || '') : '';
+    var highlights = a ? (a.highlights || []) : [];
+
+    if (!products.length) {
+      rows += '<tr onclick="openProductDetail(null, ' + s.id + ')" style="cursor:pointer">' +
+        '<td><b>' + escHtml(s.competitor) + '</b></td>' +
+        '<td>' + day + ' ' + time + '</td>' +
+        '<td style="color:var(--text-3)">—</td><td>' + dur + '</td>' +
+        '<td><span style="color:var(--text-3);font-size:12px">暂无产品</span></td>' +
+        '<td><button class="btn btn-sm">查看详情 ▸</button></td></tr>';
+      return;
+    }
+
+    products.forEach(function(p, pi) {
+      var price = p.price ? '<span style="color:var(--red);font-weight:600">' + escHtml(cleanPrice(p.price)) + '</span>' : '—';
+      var spText = p.selling_points && p.selling_points.length
+        ? p.selling_points.slice(0, 3).map(function(sp) { return '<span class="badge" style="margin:2px">' + escHtml(sp) + '</span>'; }).join('')
+        : '<span style="color:var(--text-3);font-size:12px">—</span>';
+      rows += '<tr onclick="openProductDetail(' + pi + ', ' + s.id + ')" style="cursor:pointer">' +
+        (pi === 0 ? '<td rowspan="' + products.length + '" style="vertical-align:top"><b>' + escHtml(s.competitor) + '</b><br><span style="font-size:11px;color:var(--text-3)">' + day + ' ' + time + '</span></td>' : '') +
+        '<td><b>' + escHtml(p.name || '—') + '</b></td>' +
+        '<td>' + price + '</td>' +
+        '<td>' + dur + '</td>' +
+        '<td style="max-width:260px">' + spText + '</td>' +
+        (pi === 0 ? '<td rowspan="' + products.length + '"><button class="btn btn-sm">查看详情 ▸</button></td>' : '') +
+        '</tr>';
+    });
+  });
+
+  return '<div class="table-wrap"><table style="font-size:14px">' +
+    '<thead><tr><th>账号</th><th>主推产品</th><th>价格</th><th>时长</th><th>核心卖点</th><th></th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>';
+}
+
+// 打开产品详情面板
+function openProductDetail(productIdx, sessionId) {
+  var panel = document.getElementById("detailPanel");
+  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
+  var a = ALL.analyses.find(function(x) { return x.session_id === sessionId; });
+  var t = ALL.transcripts.find(function(x) { return x.session_id === sessionId; });
+  if (!s) return;
+
+  var products = (a && a.key_products) || [];
+  var p = productIdx !== null ? (products[productIdx] || null) : null;
+
+  // 下载话术文本
+  function makeDownload() {
+    var lines = [];
+    lines.push("账号: " + (s.competitor || ''));
+    lines.push("日期: " + (s.recorded_at || '').slice(0, 10));
+    lines.push("录制时长: " + (s.duration ? Math.round(s.duration/60) + "分钟" : "—"));
+    lines.push("═".repeat(50));
+    if (p) {
+      lines.push("【主推产品】" + (p.name || ''));
+      if (p.price) lines.push("价格: " + p.price);
+      if (p.selling_points && p.selling_points.length) lines.push("卖点: " + p.selling_points.join("；"));
+      if (p.scripts && p.scripts.length) {
+        lines.push("【话术片段】");
+        safeArr(p.scripts).forEach(function(sc) { lines.push("  [" + (sc.timestamp||'') + "] " + (sc.type||'') + ": " + (sc.content||'')); });
+      }
+    }
+    if (a) {
+      if (a.sales_scripts && a.sales_scripts.length) {
+        lines.push("【全部话术片段】");
+        safeArr(a.sales_scripts).forEach(function(sc) { lines.push("  [" + (sc.timestamp||'') + "] " + (sc.type||'') + ": " + (sc.content||'')); });
+      }
+      if (a.user_persona) { lines.push("【用户画像】"); lines.push(a.user_persona); }
+      if (a.strategy_summary) { lines.push("【话术策略】"); lines.push(a.strategy_summary); }
+      if (a.highlights && a.highlights.length) { lines.push("【Highlights】"); safeArr(a.highlights).forEach(function(h){ lines.push("• " + h); }); }
+    }
+    if (t && t.full_text) {
+      lines.push("【完整逐字稿】");
+      lines.push(t.full_text);
+    }
+    return lines.join("\n");
+  }
+
+  var downloadContent = makeDownload();
+
+  // 逐字稿（保留时间戳）
+  var transcriptSection = t && t.full_text
+    ? ('<div id="dt-transcript" class="tab-content"><div class="section-label" style="margin-top:16px">完整逐字稿</div>' + renderTranscript(t.full_text) + '</div>')
+    : '<div id="dt-transcript" class="tab-content"><div class="empty">暂无转写文本</div></div>';
+
+  // 产品话术（如果有）
+  var productScriptSection = '';
+  if (p && p.scripts && p.scripts.length) {
+    var psGroups = groupScriptsByType(p.scripts);
+    var psHtml = '';
+    psGroups.forEach(function(g) {
+      var label = SCRIPT_TYPE_LABELS[g.type] || g.type;
+      psHtml += '<div style="margin-bottom:12px">';
+      psHtml += '<div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #eee">' + escHtml(label) + ' ×' + g.scripts.length + '</div>';
+      g.scripts.forEach(function(sc) {
+        psHtml += '<div class="script-item">' +
+          (sc.timestamp ? '<div class="script-ts">' + escHtml(sc.timestamp) + '</div>' : '') +
+          '<div class="script-content">' + escHtml(sc.content || '') + '</div></div>';
+      });
+      psHtml += '</div>';
+    });
+    productScriptSection = '<div id="dt-products-script" class="tab-content"><div class="section-label">话术要点</div>' + psHtml + '</div>';
+  } else if (a && a.sales_scripts && a.sales_scripts.length) {
+    var fallbackHtml = renderScriptGroups(a.sales_scripts);
+    productScriptSection = '<div id="dt-products-script" class="tab-content"><div class="section-label">话术要点</div>' + fallbackHtml + '</div>';
+  } else {
+    productScriptSection = '<div id="dt-products-script" class="tab-content"><div class="empty">暂无话术</div></div>';
+  }
+
+  // 产品信息
+  var productInfo = '';
+  if (p) {
+    var meta = [];
+    if (p.price) meta.push('<span class="badge r" style="font-size:13px;padding:3px 10px">¥' + escHtml(cleanPrice(p.price)) + '</span>');
+    if (p.selling_points && p.selling_points.length) {
+      p.selling_points.forEach(function(sp) { meta.push('<span class="badge" style="margin:2px">' + escHtml(sp) + '</span>'); });
+    }
+    productInfo = '<div class="section-label" style="margin-top:16px">产品信息</div>' +
+      '<div style="font-size:15px;font-weight:700;margin-bottom:6px">' + escHtml(p.name || '—') + '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">' + meta.join('') + '</div>';
+  }
+
+  panel.innerHTML = '<div class="detail-header">' +
+    '<div class="detail-title">' + escHtml(s.competitor) + ' · ' + fmtDate(s.recorded_at) + ' · ' + (s.duration ? Math.round(s.duration/60)+'分钟' : '') + (p ? ' · ' + escHtml(p.name || '') : '') + '</div>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button class="btn" onclick="downloadProductTxt(' + sessionId + ',' + productIdx + ')">📥 下载话术</button>' +
+    '<button class="btn" onclick="closeDetail()">关闭</button>' +
+    '</div></div>' +
+
+    '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+    '<button class="tab active" id="dt-tab-overview" onclick="showProductTab(\'overview\')">产品概览</button>' +
+    '<button class="tab" id="dt-tab-scripts" onclick="showProductTab(\'scripts\')">话术要点</button>' +
+    '<button class="tab" id="dt-tab-transcript" onclick="showProductTab(\'transcript\')">完整逐字稿</button>' +
+    '</div>' +
+
+    // 产品概览 tab
+    '<div id="dt-overview" class="tab-content">' +
+    productInfo +
+    (a && a.user_persona ? '<div class="section-label" style="margin-top:16px">用户画像</div><div class="persona-text">' + escHtml(a.user_persona) + '</div>' : '') +
+    (a && a.strategy_summary ? '<div class="section-label" style="margin-top:16px">话术策略</div><div class="strategy-text">' + escHtml(a.strategy_summary) + '</div>' : '') +
+    (a && a.highlights && a.highlights.length ? '<div class="section-label" style="margin-top:16px">Highlights</div>' + safeArr(a.highlights).map(function(h){ return '<div class="highlight-item">• ' + escHtml(h) + '</div>'; }).join('') : '') +
+    '</div>' +
+
+    // 话术 tab
+    productScriptSection +
+
+    // 逐字稿 tab
+    transcriptSection
+  ;
+
+  // 存储下载内容
+  panel.dataset.downloadContent = downloadContent;
+  panel.classList.add("open");
+  showProductTab("overview");
+  panel.scrollIntoView({ behavior: "smooth" });
+}
+
+function showProductTab(tab) {
+  document.getElementById("dt-tab-overview") && document.getElementById("dt-tab-overview").classList.toggle("active", tab === "overview");
+  document.getElementById("dt-tab-scripts") && document.getElementById("dt-tab-scripts").classList.toggle("active", tab === "scripts");
+  document.getElementById("dt-tab-transcript") && document.getElementById("dt-tab-transcript").classList.toggle("active", tab === "transcript");
+  var ov = document.getElementById("dt-overview");
+  var sc = document.getElementById("dt-products-script");
+  var tr = document.getElementById("dt-transcript");
+  if (ov) ov.style.display = tab === "overview" ? "block" : "none";
+  if (sc) sc.style.display = tab === "scripts" ? "block" : "none";
+  if (tr) tr.style.display = tab === "transcript" ? "block" : "none";
+}
+
+function closeDetail() {
+  var panel = document.getElementById("detailPanel");
+  if (panel) panel.classList.remove("open");
+}
+
+function downloadProductTxt(sessionId, productIdx) {
+  var panel = document.getElementById("detailPanel");
+  var content = panel.dataset.downloadContent || "";
+  if (!content) return;
+  var blob = new Blob(["\uFEFF" + content], {type:"text/plain;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "话术_" + sessionId + ".txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ─── 话术文本库 ────────────────────────────────────────────────────────────────
+
+	function renderSessions() {
+	  const el = document.getElementById("sessionsContent");
+	  const compId = parseInt(document.getElementById("fSessComp").value) || 0;
+	  const date = document.getElementById("fSessDate").value;
+	  const kw = document.getElementById("fSessSearch").value.trim().toLowerCase();
+
+	  let rows = ALL.sessions.slice();
+	  if (compId) rows = rows.filter(function(s) { return s.competitor_id === compId; });
+	  if (date) rows = rows.filter(function(s) { return s.recorded_at.startsWith(date); });
+	  if (kw) rows = rows.filter(function(s) { return s.competitor.toLowerCase().indexOf(kw) !== -1; });
+
+	  if (!rows.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
+
+	  var today = new Date().toISOString().slice(0, 10);
+	  var tbody = '';
+	  rows.forEach(function(s) {
+	    var day = s.recorded_at.slice(0, 10);
+	    var isToday = day === today;
+	    tbody += '<tr>' +
+	      '<td><b>' + escHtml(s.competitor) + '</b></td>' +
+	      '<td>' + (isToday ? '<b>' : '') + day + (isToday ? ' 📺</b>' : '') + '</td>' +
+	      '<td>' + s.recorded_at.slice(0, 16).replace('T', ' ') + '</td>' +
+	      '<td>' + getMainProduct(s.id) + '</td>' +
+	      '<td>' + (s.status === 'analyzed' ? '<span class="badge-status s-analyzed">已分析</span>' : s.status === 'transcribed' ? '<span class="badge-status s-transcribed">已转写</span>' : '<span class="badge-status s-recorded">已录制</span>') + '</td>' +
+	      '<td><button class="btn btn-sm" onclick="openProductDetail(null, ' + s.id + ')">查看详情</button></td>' +
+	      '<td><button class="btn btn-sm" onclick="downloadSessionTxt(' + s.id + ')">📥 下载逐字稿</button></td>' +
+	      '</tr>';
+	  });
+
+	  el.innerHTML = '<div class="card"><div class="table-wrap"><table>' +
+	    '<thead><tr><th>账号</th><th>日期</th><th>提取时间</th><th>商品</th><th>状态</th><th></th><th></th></tr></thead>' +
+	    '<tbody>' + tbody + '</tbody></table></div></div>';
+	}
+
+	
+	function getMainProduct(sessionId) {
+	  var a = ALL.analyses.find(function(x) { return x.session_id === sessionId; });
+	  if (!a || !a.key_products || !a.key_products.length) return '<span style="color:var(--text-3);font-size:12px">—</span>';
+	  var p = a.key_products[0];
+	  var price = p.price ? '<span style="color:var(--red);font-weight:600">¥' + escHtml(cleanPrice(p.price)) + '</span>' : '';
+	  return '<span style="font-size:13px">' + escHtml(p.name || '—') + ' ' + price + '</span>';
+	}
+
+function downloadSessionTxt(sessionId) {
+	  var s = ALL.sessions.find(function(x) { return x.id === sessionId; });
+	  var t = ALL.transcripts.find(function(x) { return x.session_id === sessionId; });
+	  if (!t || !t.full_text) return;
+	  var blob = new Blob(["\uFEFF" + t.full_text], {type:"text/plain;charset=utf-8"});
+	  var a = document.createElement("a");
+	  a.href = URL.createObjectURL(blob);
+	  a.download = "逐字稿_" + (s ? s.competitor + "_" + s.recorded_at.slice(0,10) : sessionId) + ".txt";
+	  a.click();
+	  URL.revokeObjectURL(a.href);
+	}
+
+	// ─── 竞品管理
+	function renderManage() {
+	  var el = document.getElementById("manageList");
+	  var comps = ALL.competitors;
+	  if (!comps.length) { el.innerHTML = '<div class="empty">暂无竞品，请添加</div>'; return; }
+	  var rows = comps.map(function(c) {
+	    var brand = c.brand || '—';
+	    var profileLink = c.profile_url || '';
+	    var liveLink = c.url || '';
+	    var editBtn = '<button class="btn btn-sm" onclick="editCompetitor(' + c.id + ')" style="margin-right:4px">编辑</button>';
+	    var delBtn = '<button class="btn btn-sm" onclick="deleteCompetitor(' + c.id + ')" style="color:var(--red);border-color:#ffccc7">删除</button>';
+	    var liveBtn = liveLink ? '<a href="' + escHtml(liveLink) + '" target="_blank" class="btn btn-sm" style="margin-right:4px">直播↗</a>' : '';
+	    var profileBtn = profileLink ? '<a href="' + escHtml(profileLink) + '" target="_blank" class="btn btn-sm" style="margin-right:4px">账号↗</a>' : '';
+	    return '<tr>' +
+	      '<td><b>' + escHtml(c.name) + '</b></td>' +
+	      '<td><span style="font-size:12px;color:var(--blue)">' + escHtml(brand) + '</span></td>' +
+	      '<td style="white-space:nowrap">' + escHtml(c.stage || '—') + '</td>' +
+	      '<td style="white-space:nowrap">' + editBtn + liveBtn + profileBtn + delBtn + '</td>' +
+	      '</tr>';
+	  }).join('');
+	  el.innerHTML = '<div class="card"><div class="card-title">当前竞品（' + comps.length + ' 个）</div>' +
+	    '<div class="table-wrap"><table><thead><tr><th>账号名称</th><th>品牌</th><th>学段</th><th>操作</th></tr></thead>' +
+	    '<tbody>' + rows + '</tbody></table></div></div>';
+	}
+
+	function addCompetitor() {
+	  var name = document.getElementById("mName").value.trim();
+	  var brand = document.getElementById("mBrand").value.trim();
+	  var userUrl = document.getElementById("mUrl").value.trim();
+	  var liveUrl = document.getElementById("mLiveUrl").value.trim();
+	  var msg = document.getElementById("mMsg");
+	  if (!name) { msg.innerHTML = '<span style="color:var(--red)">请输入账号名称</span>'; return; }
+	  if (!brand) { msg.innerHTML = '<span style="color:var(--red)">请输入品牌名称</span>'; return; }
+	  if (!userUrl && !liveUrl) { msg.innerHTML = '<span style="color:var(--red)">请提供抖音主页链接或直播间链接</span>'; return; }
+	  var finalLiveUrl = liveUrl || 'https://live.douyin.com/待补充';
+	  saveCompetitor(name, brand, document.getElementById('mStage').value.trim(), userUrl, finalLiveUrl);
+	}
+
+	function saveCompetitor(name, brand, stage, userUrl, liveUrl) {
+	  var editingId = parseInt(document.getElementById("mEditingId").value) || null;
+	  var msg = document.getElementById("mMsg");
+	  var comps = ALL.competitors.slice();
+	  var isEditing = !!editingId;
+	  if (isEditing) {
+	    // 更新现有
+	    comps = comps.map(function(c) {
+	      if (c.id === editingId) {
+	        c.name = name; c.brand = brand; c.stage = stage; c.profile_url = userUrl; c.url = liveUrl;
+	      }
+	      return c;
+	    });
+	  } else {
+	    if (comps.some(function(c) { return c.name === name; })) {
+	      msg.innerHTML = '<span style="color:var(--orange)">该账号已存在</span>'; return;
+	    }
+	    var maxId = comps.reduce(function(m, c) { return Math.max(m, c.id || 0); }, 0);
+	    comps.push({ id: maxId + 1, name: name, brand: brand, stage: stage || "", profile_url: userUrl || '', url: liveUrl });
+	  }
+	  ALL.competitors = comps;
+	  var fileContent = JSON.stringify(comps, null, 2);
+	  commitFile('docs/data2/competitors.json', fileContent, function(ok) {
+	    var mEl = document.getElementById("mMsg");
+	    if (ok) {
+	      mEl.innerHTML = '<span style="color:var(--green)">✅ ' + (isEditing ? '已更新' : '已添加') + '！下次CI将自动采集。</span>';
+	      document.getElementById("mName").value = '';
+	      document.getElementById("mUrl").value = '';
+	      document.getElementById("mLiveUrl").value = '';
+	      renderManage();
+	    } else {
+	      // GitHub Pages 无法直接写仓库，引导用户手动编辑
+	      var blob = new Blob([fileContent], {type:"application/json"});
+	      var a = document.createElement("a");
+	      a.href = URL.createObjectURL(blob);
+	      a.download = 'competitors.json';
+	      a.click();
+	      URL.revokeObjectURL(a.href);
+	      mEl.innerHTML = '<span style="color:var(--orange)">⚠️ GitHub Pages 无写入权限。请下载 JSON，复制到 <b>docs/data/competitors.json</b>，然后 GitHub 上手动提交。</span>';
+	    }
+	  });
+	}
+
+	function deleteCompetitor(id) {
+	  if (!confirm('确定删除该竞品？')) return;
+	  var comps = ALL.competitors.filter(function(c) { return c.id !== id; });
+	  ALL.competitors = comps;
+	  commitFile('docs/data/competitors.json', JSON.stringify(comps, null, 2), function(ok) {
+	    if (ok) renderManage();
+	    else alert('删除失败，请手动编辑 docs/data/competitors.json');
+	  });
+	}
+
+	function editCompetitor(id) {
+	  var c = ALL.competitors.find(function(x) { return x.id === id; });
+	  if (!c) return;
+	  document.getElementById("mName").value = c.name || '';
+	  document.getElementById("mBrand").value = c.brand || '';
+	  document.getElementById("mStage").value = c.stage || '';
+	  document.getElementById("mUrl").value = c.profile_url || '';
+	  document.getElementById("mLiveUrl").value = c.url || '';
+	  document.getElementById("mEditingId").value = id;
+	  document.getElementById("mMsg").innerHTML = '<span style="color:var(--blue)">正在编辑：' + escHtml(c.name) + ' <a href="#" onclick="cancelEdit();return false" style="margin-left:8px">取消编辑</a></span>';
+	  document.getElementById("addBtn").textContent = "更新";
+	  document.getElementById("addBtn").onclick = function() { saveCompetitor(
+	    document.getElementById("mName").value.trim(),
+	    document.getElementById("mBrand").value.trim(),
+	    document.getElementById("mStage").value.trim(),
+	    document.getElementById("mUrl").value.trim(),
+	    document.getElementById("mLiveUrl").value.trim()
+	  ); };
+	  document.querySelector(".container").scrollIntoView();
+	}
+
+	function cancelEdit() {
+	  document.getElementById("mName").value = '';
+	  document.getElementById("mBrand").value = '';
+	  document.getElementById("mStage").value = '';
+	  document.getElementById("mUrl").value = '';
+	  document.getElementById("mLiveUrl").value = '';
+	  document.getElementById("mEditingId").value = '';
+	  document.getElementById("mMsg").innerHTML = '';
+	  document.getElementById("addBtn").textContent = "添加";
+	  document.getElementById("addBtn").onclick = addCompetitor;
+	  renderManage();
+	}
+
+
+	function commitFile(path, content, cb) {
+  // GitHub API commit 需要 GITHUB_TOKEN（CI 用 github.token 注入，GitHub Pages 无写入权限）
+  if (typeof GITHUB_TOKEN === 'undefined' || !GITHUB_TOKEN) {
+    cb(false); return;
+  }
+	  var repo = 'wangziyan617-sudo/live-monitor-';
+	  var branch = 'main';
+	  var encodedContent = btoa(unescape(encodeURIComponent(content)));
+	  var _fileSha = null;
+	  function doCommit() {
+	    var body = { message: 'chore: 更新竞品列表', content: encodedContent, branch: branch };
+	    if (_fileSha) body.sha = _fileSha;
+	    fetch('https://api.github.com/repos/' + repo + '/contents/' + path, {
+	      method: 'PUT',
+	      headers: { 'Authorization': 'token ' + GITHUB_TOKEN, 'Content-Type': 'application/json' },
+	      body: JSON.stringify(body)
+	    }).then(function(r) { return r.json(); }).then(function(data) {
+	      cb(!data.message);
+	    }).catch(function() { cb(false); });
+	  }
+	  fetch('https://api.github.com/repos/' + repo + '/contents/' + path + '?ref=' + branch, {
+	    headers: { 'Authorization': 'token ' + GITHUB_TOKEN }
+	  }).then(function(r) { return r.json(); }).then(function(data) {
+	    if (data.sha) _fileSha = data.sha;
+	    doCommit();
+	  }).catch(function() { doCommit(); });
+	}
+
+
+// ─── 详情面板 ─────────────────────────────────────────────────────────────────
+
+// 话术类型中文映射和顺序
+var SCRIPT_TYPE_ORDER = [
+  "暖场/开场", "开场/暖场", "暖场破冰", "开场白", "暖场", "开场",
+  "痛点/需求唤醒", "痛点需求唤醒", "痛点", "痛点需求", "使用场景", "适用人群说明",
+  "价值塑造", "产品介绍", "产品功能", "产品展示", "价格锚定",
+  "效果承诺", "信任背书", "专项突破", "专项训练", "考前模拟",
+  "社会认同", "比喻说服",
+  "促销逼单", "逼单", "库存紧张", "时间限定", "限时限量", "催单话术",
+  "服务保障", "版本说明", "版本选择", "赠品价值", "赠品促销", "赠品刺激", "赠品策略",
+  "结尾收束", "FAQ答疑",
+];
+var SCRIPT_TYPE_LABELS = {
+  "痛点/需求唤醒": "痛点唤醒", "痛点需求唤醒": "痛点唤醒", "痛点需求": "痛点唤醒",
+  "暖场破冰": "暖场破冰", "暖场/开场": "暖场开场", "开场/暖场": "暖场开场",
+  "开场白": "开场白", "暖场": "暖场", "开场": "开场",
+  "使用场景": "使用场景", "适用人群说明": "适用人群",
+  "价值塑造": "价值塑造", "产品介绍": "产品介绍", "产品功能": "产品功能", "产品展示": "产品展示",
+  "价格锚定": "价格锚定",
+  "效果承诺": "效果承诺", "信任背书": "信任背书",
+  "专项突破": "专项突破", "专项训练": "专项训练", "考前模拟": "考前模拟",
+  "社会认同": "社会认同", "比喻说服": "比喻说服",
+  "促销逼单": "促销逼单", "逼单": "逼单", "库存紧张": "库存紧张", "时间限定": "时间限定", "限时限量": "限时限量",
+  "催单话术": "催单话术",
+  "服务保障": "服务保障", "版本说明": "版本说明", "版本选择": "版本选择",
+  "赠品价值": "赠品价值", "赠品促销": "赠品促销", "赠品刺激": "赠品刺激", "赠品策略": "赠品策略",
+  "结尾收束": "结尾收束", "FAQ答疑": "FAQ答疑",
+};
+
+function groupScriptsByType(scripts) {
+  var groups = {};
+  safeArr(scripts).forEach(function(sc) {
+    var t = sc.type || "其他";
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(sc);
+  });
+  var ordered = [];
+  SCRIPT_TYPE_ORDER.forEach(function(t) {
+    if (groups[t]) { ordered.push({ type: t, scripts: groups[t] }); delete groups[t]; }
+  });
+  Object.keys(groups).forEach(function(t) { ordered.push({ type: t, scripts: groups[t] }); });
+  return ordered;
+}
+
+// 按产品分组展示话术（优先用 key_products 里的 scripts）
+function renderProductScripts(kps) {
+  if (!kps || !kps.length) return "";
+  var html = "";
+  kps.forEach(function(p, pi) {
+    var scripts = safeArr(p.scripts);
+    var sps = p.selling_points || [];
+    var price = cleanPrice(p.price);
+    // 判断是否有产品级话术
+    var hasScripts = scripts.length > 0;
+    html += '<div style="margin-bottom:20px;border:1px solid #eee;border-radius:8px;overflow:hidden">';
+    // 产品标题栏
+    var headerBg = pi === 0 ? "#1677ff" : pi === 1 ? "#52c41a" : "#fa8c16";
+    html += '<div style="background:' + headerBg + ';color:#fff;padding:8px 14px;font-weight:600;font-size:14px">';
+    html += escHtml(p.name || "产品" + (pi + 1));
+    if (price) html += ' <span style="font-size:13px;opacity:0.9">· ' + escHtml(price) + '</span>';
+    if (sps.length) html += ' <span style="font-size:12px;opacity:0.8">· ' + sps.slice(0,3).map(function(s){return escHtml(s);}).join(" · ") + '</span>';
+    html += '</div>';
+    // 卖点（全部）
+    if (sps.length) {
+      html += '<div style="padding:8px 14px;background:#fafafa;border-bottom:1px solid #f0f0f0">';
+      sps.forEach(function(sp) {
+        html += '<span class="badge" style="margin:2px">' + escHtml(sp) + '</span>';
+      });
+      html += '</div>';
+    }
+    // 话术片段
+    if (hasScripts) {
+      var groups = groupScriptsByType(scripts);
+      groups.forEach(function(g) {
+        var label = SCRIPT_TYPE_LABELS[g.type] || g.type;
+        var badgeColor = g.type.indexOf("痛点") !== -1 ? "o" :
+                         g.type.indexOf("逼单") !== -1 || g.type.indexOf("催单") !== -1 ? "r" :
+                         g.type.indexOf("价值") !== -1 || g.type.indexOf("产品") !== -1 ? "g" : "";
+        html += '<div style="padding:8px 14px;border-bottom:1px solid #f5f5f5">';
+        html += '<div style="font-size:12px;color:#888;margin-bottom:6px;font-weight:600">' + escHtml(label) + ' ×' + g.scripts.length + '</div>';
+        g.scripts.forEach(function(sc) {
+          html += '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:6px">';
+          if (sc.timestamp) html += '<span class="badge" style="margin-right:6px;flex-shrink:0">' + escHtml(sc.timestamp) + '</span>';
+          html += escHtml(sc.content || "") + '</div>';
+        });
+        html += '</div>';
+      });
+    } else {
+      html += '<div style="padding:12px 14px;color:#bbb;font-size:13px">暂无话术片段</div>';
+    }
+    html += '</div>';
+  });
+  return html;
+}
+
+function renderScriptGroups(scripts) {
+  if (!scripts || !scripts.length) return '<div style="color:var(--text-3);font-size:13px">暂无话术片段</div>';
+  var groups = groupScriptsByType(scripts);
+  var html = '';
+  groups.forEach(function(g) {
+    var label = SCRIPT_TYPE_LABELS[g.type] || g.type;
+    var badgeColor = g.type.indexOf("痛点") !== -1 ? "o" :
+                     g.type.indexOf("逼单") !== -1 || g.type.indexOf("催单") !== -1 ? "r" :
+                     g.type.indexOf("价值") !== -1 || g.type.indexOf("产品") !== -1 ? "g" : "";
+    html += '<div style="margin-bottom:16px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #eee">';
+    html += '<span class="badge ' + badgeColor + '" style="font-size:13px;font-weight:600;padding:2px 10px">' + escHtml(label) + '</span>';
+    html += '<span style="font-size:12px;color:var(--text-3)">' + g.scripts.length + '条</span>';
+    html += '</div>';
+    g.scripts.forEach(function(sc) {
+      html += '<div class="script-item" style="margin-bottom:6px">';
+      if (sc.timestamp) {
+        html += '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">';
+        html += '<span class="badge" style="font-size:11px;flex-shrink:0">' + escHtml(sc.timestamp) + '</span>';
+        html += '</div>';
+      }
+      html += '<div class="script-content">' + escHtml(sc.content || "") + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  return html;
+}
+
+function renderTranscript(text) {
+  if (!text) return '<div class="empty">暂无转写文本</div>';
+  var lines = text.split("\n");
+  var entries = [];
+  lines.forEach(function(line) {
+    var m = line.match(/^\[(\d{2}:\d{2})\s*-->\s*(\d{2}:\d{2})\]\s*(.+)/);
+    if (m) {
+      entries.push({ start: m[1], end: m[2], content: m[3].trim() });
+    }
+  });
+  if (entries.length === 0) {
+    return '<div class="transcript-box">' + escHtml(text) + '</div>';
+  }
+  // 保留全部逐字稿（不过滤）
+  var filtered = entries;
+
+  var tocHtml = '';
+  filtered.forEach(function(e, idx) {
+    tocHtml += '<a href="#tseg' + idx + '" style="display:inline-block;background:#f0f5ff;color:var(--blue);border-radius:4px;padding:1px 8px;font-size:12px;margin:2px;text-decoration:none">' + escHtml(e.start) + '</a>';
+  });
+  var bodyHtml = '<div style="margin-bottom:16px;padding:10px;background:#fafafa;border-radius:6px;font-size:12px;color:var(--text-2)">时间节点：' + tocHtml + '</div>';
+  bodyHtml += '<div class="transcript-box">';
+  filtered.forEach(function(e, idx) {
+    bodyHtml += '<div id="tseg' + idx + '" style="margin-bottom:10px;line-height:1.7">';
+    bodyHtml += '<span style="color:#333;font-size:13px">' + escHtml(e.content) + '</span>';
+    bodyHtml += '</div>';
+  });
+  bodyHtml += '</div>';
+  return bodyHtml;
+}
+
+// ─── 导出 ─────────────────────────────────────────────────────────────────────
+function exportJSON() {
+  const date = document.getElementById("fDate").value;
+  const compId = parseInt(document.getElementById("fComp").value) || 0;
+  let sessions = ALL.sessions.filter(s => s.status === "analyzed");
+  if (date) sessions = sessions.filter(s => s.recorded_at.startsWith(date));
+  if (compId) sessions = sessions.filter(s => s.competitor_id === compId);
+  const data = sessions.map(s => ({ session: s, analysis: ALL.analyses.find(a => a.session_id === s.id) || null }));
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], {type:"application/json"}), `竞品直播_横向对比.json`);
+}
+
+function exportCSV() {
+  const date = document.getElementById("fDate").value;
+  let sessions = ALL.sessions.filter(s => s.status === "analyzed");
+  if (date) sessions = sessions.filter(s => s.recorded_at.startsWith(date));
+  const header = ["账号","日期","时长(分钟)","主推品","卖点","用户画像","话术策略","Highlights"];
+  const rows = sessions.map(s => {
+    const a = ALL.analyses.find(x => x.session_id === s.id);
+    return [
+      s.competitor, s.recorded_at.slice(0,10),
+      s.duration ? Math.round(s.duration/60) : "",
+      (a?.key_products||[]).map(p=>p.name).join("; "),
+      (a?.key_products||[]).flatMap(p=>p.selling_points||[]).join("; "),
+      a?.user_persona || "",
+      a?.strategy_summary || "",
+      (a?.highlights||[]).join("; "),
+    ];
+  });
+  const BOM = "\uFEFF";
+  const csv = [header, ...rows].map(r => r.map(c => { var v = String(c||""); return String.fromCharCode(34)+v.replace(/"/g, String.fromCharCode(34,34))+String.fromCharCode(34); }).join(",")).join("\n");
+  downloadBlob(new Blob([BOM + csv], {type:"text/csv;charset=utf-8"}), `竞品直播_横向对比.csv`);
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ─── 工具 ─────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");
+}
+function fmtDate(dt) { return new Date(dt).toLocaleString("zh-CN", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+function fmtTime(dt) { return new Date(dt).toLocaleString("zh-CN", {month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+// 清洗价格：去掉"原价/定价/吊牌价"等文字，只保留实际售价
+// 例如: "82元（原价160元，半价优惠）" → "82元（半价优惠）"
+function cleanPrice(raw) {
+  if (!raw) return '';
+  var s = String(raw);
+  // 去掉"原价xxx元"、"吊牌价xxx"、"定价xxx"等（数字可能在元/块/份等单位前面）
+  s = s.replace(/(原|吊牌|定)价[^\d]*?(\d+[\d.]*)[元块份个]?/gi, function(m, p, num) {
+    return ''; // 整段删掉
+  });
+  // 去掉残余的空括号（如果原价那部分把括号内容清空了）
+  s = s.replace(/\s*\([（【]*\)*\)*/g, '').replace(/\s*\)[）\]]*/g, '');
+  return s.trim() || raw;
+}
+
+
+
+// 策略演进图
+var _evoChart = null;
+function renderEvolution() {
+  var el = document.getElementById('evolutionContent');
+  if (!el) return;
+  console.log('[evolution] ALL.sessions.length=', ALL.sessions.length, 'analyses=', ALL.analyses.length);
+  if (!ALL.sessions.length) { el.innerHTML = '<div class=empty>暂无数据</div>'; return; }
+  var dimMap = {
+    '促销逼单': '逼单力度', '逼单': '逼单力度', '暖场破冰': '逼单力度', '暖场/开场': '逼单力度', '开场/暖场': '逼单力度', '暖场': '逼单力度', '开场暖场': '逼单力度', '库存紧张': '逼单力度', '时间限定': '逼单力度', '限时限量': '逼单力度', '限时逼单': '逼单力度', '价格促销': '逼单力度',
+    '痛点/需求唤醒': '挖需深度', '痛点需求唤醒': '挖需深度', '痛点': '挖需深度', '痛点需求': '挖需深度', '使用场景': '挖需深度', '适用人群说明': '挖需深度', '暖场/痛点': '挖需深度',
+    '开场白': '专业度', '开场': '专业度', '信任背书': '专业度', '效果承诺': '专业度', '专项突破': '专业度', '专项训练': '专业度', '考前模拟': '专业度', '方法讲解': '专业度',
+    '服务保障': '服务保障', 'FAQ答疑': '服务保障', 'FAQ': '服务保障', '版本说明': '服务保障', '版本选择': '服务保障', '价格锚定': '服务保障', '赠品价值': '服务保障', '赠品促销': '服务保障', '赠品刺激': '服务保障', '赠品策略': '服务保障', '赠品营销': '服务保障',
+    '社会认同': '焦虑制造', '比喻说服': '焦虑制造',
+    '价值塑造': '价格诱导', '产品介绍': '价格诱导', '产品功能': '价格诱导', '产品展示': '价格诱导', '产品特色': '价格诱导', '价格对比': '价格诱导',
+  };
+  var dims = ['逼单力度', '挖需深度', '价格诱导', '专业度', '服务保障', '焦虑制造'];
+  var seriesMap = {};
+  var competitors = [];
+  ALL.sessions.forEach(function(s) {
+    if (s.status !== 'analyzed') return;
+    var a = ALL.analyses.find(function(x) { return x.session_id === s.id; });
+    if (!a) return;
+    var date = s.recorded_at.slice(0, 10);
+    var comp = s.competitor;
+    if (competitors.indexOf(comp) === -1) competitors.push(comp);
+    if (!seriesMap[date]) seriesMap[date] = {};
+    if (!seriesMap[date][comp]) {
+      var scores = {}; dims.forEach(function(d) { scores[d] = 0; }); scores.count = 0;
+      seriesMap[date][comp] = scores;
+    }
+    var tally = function(scripts) {
+      if (!Array.isArray(scripts)) return;
+      scripts.forEach(function(sc) {
+        var mapped = dimMap[sc.type || ''];
+        if (mapped) seriesMap[date][comp][mapped] += 2;
+        seriesMap[date][comp].count++;
+      });
+    };
+    safeArr(a.sales_scripts).forEach(tally);
+    safeArr(a.key_products).forEach(function(p) { safeArr(p.scripts).forEach(tally); });
+  });
+  var dates = Object.keys(seriesMap).sort();
+  console.log('[evolution] seriesMap dates=', dates, 'competitors=', competitors, 'firstEntry=', JSON.stringify(seriesMap[dates[0]]));
+  if (!dates.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
+  var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
+  var defaultDim = '逼单力度';
+  var datasets = competitors.map(function(comp, ci) {
+    var data = dates.map(function(d) {
+      var entry = seriesMap[d] && seriesMap[d][comp];
+      if (!entry || !entry.count) return null;
+      return Math.min(10, +(entry[defaultDim] / entry.count).toFixed(1));
+    });
+    return { label: comp, data: data, borderColor: compColors[ci % compColors.length], backgroundColor: 'transparent', tension: 0.4, pointRadius: 5, fill: false };
+  });
+  var radios = dims.map(function(d) {
+    var chk = d === defaultDim ? 'checked ' : '';
+    return '<label style=margin-right:14px;font-size:13px><input type=radio name=evoDim value=' + d + ' ' + chk + 'onchange=renderEvolutionDim(this.value)>' + d + '</label>';
+  }).join('');
+  var debugTable = '<div style="margin-top:16px;font-size:12px;color:var(--text-3);overflow-x:auto"><b>调试数据：</b>发现 ' + competitors.length + ' 个竞品，日期：' + dates.join(', ') +
+    '<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:12px"><tr style="background:#f5f5f5"><th style="padding:4px 8px;text-align:left">竞品</th>';
+  dims.forEach(function(d){ debugTable += '<th style="padding:4px 8px;text-align:center">' + d + '</th>'; });
+  debugTable += '</tr>';
+  competitors.forEach(function(comp){
+    debugTable += '<tr><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;font-weight:600">' + comp + '</td>';
+    dims.forEach(function(d){
+      var entry = seriesMap[dates[0]] && seriesMap[dates[0]][comp];
+      var val = entry && entry.count ? (entry[d]/entry.count).toFixed(1) : '0.0';
+      debugTable += '<td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;text-align:center;color:' + (parseFloat(val)>0?'var(--green)':'var(--text-3)') + '">' + val + '</td>';
+    });
+    debugTable += '</tr>';
+  });
+  debugTable += '</table></div>';
+  el.innerHTML = '<div class=card><div class=card-title>策略演进 · ' + defaultDim + '（近30天）</div>' +
+    '<div style=margin:8px 0 12px><span style=font-size:13px>维度：</span>' + radios + '</div>' +
+    '<div style=position:relative;height:200px><canvas id=evoCanvas></canvas></div>' + debugTable + '</div>';
+  if (_evoChart) _evoChart.destroy();
+  try {
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        var ctx = document.getElementById('evoCanvas');
+        if (!ctx) { console.error('[evolution] canvas not found'); return; }
+        _evoChart = new Chart(ctx, {
+          type: 'line',
+          data: { labels: dates, datasets: datasets },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+        console.log('[evolution] chart created');
+      });
+    });
+  } catch(e) { console.error('[evolution] chart error', e); }
+}
+function renderEvolutionDim(dim) {
+  var el = document.getElementById('evolutionContent');
+  if (!el) return;
+  var t = el.querySelector('.card-title');
+  if (t) t.textContent = '策略演进 · ' + dim + '（近30天）';
+  var dimMap = {
+    '促销逼单': '逼单力度', '逼单': '逼单力度', '暖场破冰': '逼单力度', '暖场/开场': '逼单力度', '开场/暖场': '逼单力度', '暖场': '逼单力度', '开场暖场': '逼单力度', '库存紧张': '逼单力度', '时间限定': '逼单力度', '限时限量': '逼单力度', '限时逼单': '逼单力度', '价格促销': '逼单力度',
+    '痛点/需求唤醒': '挖需深度', '痛点需求唤醒': '挖需深度', '痛点': '挖需深度', '痛点需求': '挖需深度', '使用场景': '挖需深度', '适用人群说明': '挖需深度', '暖场/痛点': '挖需深度',
+    '开场白': '专业度', '开场': '专业度', '信任背书': '专业度', '效果承诺': '专业度', '专项突破': '专业度', '专项训练': '专业度', '考前模拟': '专业度', '方法讲解': '专业度',
+    '服务保障': '服务保障', 'FAQ答疑': '服务保障', 'FAQ': '服务保障', '版本说明': '服务保障', '版本选择': '服务保障', '价格锚定': '服务保障', '赠品价值': '服务保障', '赠品促销': '服务保障', '赠品刺激': '服务保障', '赠品策略': '服务保障', '赠品营销': '服务保障',
+    '社会认同': '焦虑制造', '比喻说服': '焦虑制造',
+    '价值塑造': '价格诱导', '产品介绍': '价格诱导', '产品功能': '价格诱导', '产品展示': '价格诱导', '产品特色': '价格诱导', '价格对比': '价格诱导',
+  };
+  var seriesMap = {}; var competitors = [];
+  ALL.sessions.forEach(function(s) {
+    if (s.status !== 'analyzed') return;
+    var a = ALL.analyses.find(function(x) { return x.session_id === s.id; });
+    if (!a) return;
+    var date = s.recorded_at.slice(0, 10);
+    var comp = s.competitor;
+    if (competitors.indexOf(comp) === -1) competitors.push(comp);
+    if (!seriesMap[date]) seriesMap[date] = {};
+    if (!seriesMap[date][comp]) { var sc = {}; sc[dim] = 0; sc.count = 0; seriesMap[date][comp] = sc; }
+    var tally = function(scripts) {
+      if (!Array.isArray(scripts)) return;
+      scripts.forEach(function(sc) {
+        var mapped = dimMap[sc.type || ''];
+        if (mapped === dim) { seriesMap[date][comp][dim] += 2; seriesMap[date][comp].count++; }
+      });
+    };
+    safeArr(a.sales_scripts).forEach(tally);
+    safeArr(a.key_products).forEach(function(p) { safeArr(p.scripts).forEach(tally); });
+  });
+  var dates = Object.keys(seriesMap).sort();
+  var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
+  if (!_evoChart) return;
+  _evoChart.data.datasets = competitors.map(function(comp, ci) {
+    var data = dates.map(function(d) {
+      var e = seriesMap[d] && seriesMap[d][comp];
+      if (!e || !e.count) return null;
+      return Math.min(10, +(e[dim] / e.count).toFixed(1));
+    });
+    return { label: comp, data: data, borderColor: compColors[ci % compColors.length], backgroundColor: 'transparent', tension: 0.4, pointRadius: 5, fill: false };
+  });
+  _evoChart.data.labels = dates;
+  _evoChart.update();
+}
+var _radarChart = null;
+function renderRadar() {
+  var el = document.getElementById('radarContent');
+  if (!el) return;
+  console.log('[radar] sessions=', ALL.sessions.length, 'analyses=', ALL.analyses.length);
+  if (!ALL.sessions.length) { el.innerHTML = '<div class=empty>暂无数据</div>'; return; }
+  var typeToDim = {
+    '促销逼单': '逼单力度', '逼单': '逼单力度', '暖场破冰': '逼单力度', '暖场/开场': '逼单力度', '开场/暖场': '逼单力度', '暖场': '逼单力度', '开场暖场': '逼单力度', '库存紧张': '逼单力度', '时间限定': '逼单力度', '限时限量': '逼单力度', '限时逼单': '逼单力度', '价格促销': '逼单力度',
+    '痛点/需求唤醒': '挖需深度', '痛点需求唤醒': '挖需深度', '痛点': '挖需深度', '痛点需求': '挖需深度', '使用场景': '挖需深度', '适用人群说明': '挖需深度', '暖场/痛点': '挖需深度',
+    '开场白': '专业度', '开场': '专业度', '信任背书': '专业度', '效果承诺': '专业度', '专项突破': '专业度', '专项训练': '专业度', '考前模拟': '专业度', '方法讲解': '专业度',
+    '服务保障': '服务保障', 'FAQ答疑': '服务保障', 'FAQ': '服务保障', '版本说明': '服务保障', '版本选择': '服务保障', '价格锚定': '服务保障', '赠品价值': '服务保障', '赠品促销': '服务保障', '赠品刺激': '服务保障', '赠品策略': '服务保障', '赠品营销': '服务保障',
+    '社会认同': '焦虑制造', '比喻说服': '焦虑制造',
+    '价值塑造': '价格诱导', '产品介绍': '价格诱导', '产品功能': '价格诱导', '产品展示': '价格诱导', '产品特色': '价格诱导', '价格对比': '价格诱导',
+  };
+  var dims = ['逼单力度', '挖需深度', '价格诱导', '专业度', '服务保障', '焦虑制造'];
+  var compTotals = {}; var competitors = [];
+  ALL.sessions.forEach(function(s) {
+    if (s.status !== 'analyzed') return;
+    var a = ALL.analyses.find(function(x) { return x.session_id === s.id; });
+    if (!a) return;
+    var comp = s.competitor;
+    if (competitors.indexOf(comp) === -1) competitors.push(comp);
+    if (!compTotals[comp]) { var t = {}; dims.forEach(function(d) { t[d] = 0; }); t.count = 0; compTotals[comp] = t; }
+    var tally = function(scripts) {
+      if (!Array.isArray(scripts)) return;
+      scripts.forEach(function(sc) {
+        var mapped = typeToDim[sc.type || ''];
+        if (mapped) compTotals[comp][mapped] += 2;
+        compTotals[comp].count++;
+      });
+    };
+    safeArr(a.sales_scripts).forEach(tally);
+    safeArr(a.key_products).forEach(function(p) { safeArr(p.scripts).forEach(tally); });
+  });
+  if (!competitors.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
+  var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
+  var datasets = competitors.map(function(comp, ci) {
+    var t = compTotals[comp]; var cnt = t.count || 1;
+    var data = dims.map(function(d) { return Math.min(10, +(t[d] / cnt).toFixed(1)); });
+    return { label: comp, data: data, borderColor: compColors[ci % compColors.length], backgroundColor: compColors[ci % compColors.length] + '33' };
+  });
+  el.innerHTML = '<div class=card><div class=card-title>竞品博弈图（六大维度对比）</div><div style=position:relative;height:340px><canvas id=radarCanvas></canvas></div></div><div style=font-size:12px;color:var(--text-3);margin-top:8px;text-align:center>分值0-10，数值越高该维度越突出</div>';
+  if (_radarChart) _radarChart.destroy();
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      var ctx = document.getElementById('radarCanvas');
+      if (!ctx) { console.error('[radar] canvas not found'); return; }
+      _radarChart = new Chart(ctx, {
+        type: 'radar',
+        data: { labels: dims, datasets: datasets },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { r: { min: 0, max: 10 } } }
+      });
+      console.log('[radar] chart created');
+    });
+  });
+}
+function renderCloud() {
+  var el = document.getElementById('cloudContent');
+  if (!el) return;
+  if (!ALL.analyses.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
+  var wordCount = {};
+  function add(w, n) { if (w && w.length >= 2) wordCount[w] = (wordCount[w] || 0) + (n || 1); }
+
+  // 虚词头尾字符集（首字或尾字是这些字的片段直接丢弃）
+  var vStart = '的了是在有和就等不也很都要跟那能被会让以为但或所因如那么什这哪啊哦嗯哈哎诶呀呗嘛啦噢哇我你他她它们咱给把向从到于对于让被其每各种些';
+  var vEnd =   '的了吗呢啊哦嗯哈哎诶呀呗嘛啦噢哇吧嗨呵嘞啥么个';
+  // 完整词黑名单（极高频但无意义）
+  var blacklist = {'一下':1,'一点':1,'一个':1,'一种':1,'一直':1,'一起':1,'一哈':1,'可以':1,'能够':1,'已经':1,'就是':1,'还是':1,'这个':1,'那个':1,'什么':1,'怎么':1,'这样':1,'那样':1,'我们':1,'你们':1,'他们':1,'咱们':1,'大家':1,'宝贝':1,'孩子':1,'家长':1,'小朋友':1,'小学生':1,'今天':1,'直播':1,'直播间':1,'价格':1,'价钱':1,'链接':1,'购买':1,'感兴趣':1,'需要':1,'不需要':1,'是的':1,'对的':1,'好的':1,'没有':1,'有没有':1,'现在':1,'马上':1,'赶快':1};
+
+  function addWords(text) {
+    if (!text) return;
+    var words = text.match(/[\u4e00-\u9fa5]{2,8}/g) || [];
+    words.forEach(function(w) {
+      if (blacklist[w]) return;
+      if (vStart.indexOf(w.charAt(0)) !== -1) return;
+      if (vEnd.indexOf(w.charAt(w.length - 1)) !== -1) return;
+      add(w, 1);
+    });
+  }
+
+  ALL.analyses.forEach(function(a) {
+    // 结构化字段（高权重，词义明确）
+    safeArr(a.key_products).forEach(function(p) {
+      if (p.name) add(p.name, 5);
+      safeArr(p.selling_points).forEach(function(sp) { if (sp) add(sp, 3); });
+      safeArr(p.scripts).forEach(function(sc) {
+        if (sc.type) add(sc.type, 2);
+        addWords(sc.content || '');  // 原文
+      });
+    });
+    safeArr(a.sales_scripts).forEach(function(sc) {
+      if (sc.type) add(sc.type, 2);
+      addWords(sc.content || '');  // 原文
+    });
+    safeArr(a.highlights).forEach(function(h) { if (h) add(h, 2); });
+  });
+
+  var sorted = Object.entries(wordCount).filter(function(e){ return e[1] >= 2; }).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 80);
+  if (!sorted.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
+  var maxF = sorted[0][1], minF = sorted[sorted.length - 1][1];
+  var colorPalette = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14','#2f54d0','#389e0d'];
+  var words = sorted.map(function(e, i) {
+    var w = e[0], freq = e[1];
+    var size = 14 + Math.round((freq - minF) / Math.max(1, maxF - minF) * 36);
+    var color = colorPalette[i % colorPalette.length];
+    var weight = freq > (maxF * 0.6) ? '700' : '400';
+    return '<span style=font-size:' + size + 'px;color:' + color + ';margin:5px 7px;display:inline-block;font-weight:' + weight + ';cursor:default title=' + w + '出现' + freq + '次>' + w + '</span>';
+  }).join('');
+  el.innerHTML = '<div class=card><div class=card-title>话术关键词云（共' + sorted.length + '词，字体越大权重越高）</div><div style=padding:24px;text-align:center;min-height:300px;line-height:2.4>' + words + '</div></div><div style=font-size:12px;color:var(--text-3);margin-top:8px;text-align:center>数据来源：AI提取的商品名、卖点、话术类型、亮点</div>';
+}
+
+// ─── 启动 ─────────────────────────────────────────────────────────────────────
+init().catch(e => { console.error(e); });
+</script>
+</body>
+</html>
