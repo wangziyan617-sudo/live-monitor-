@@ -1122,15 +1122,21 @@ function renderEvolution() {
   debugTable += '</table></div>';
   el.innerHTML = '<div class=card><div class=card-title>策略演进 · ' + defaultDim + '（近30天）</div>' +
     '<div style=margin:8px 0 12px><span style=font-size:13px>维度：</span>' + radios + '</div>' +
-    '<canvas id=evoCanvas height=80></canvas>' + debugTable + '</div>';
+    '<div style=position:relative;height:200px><canvas id=evoCanvas></canvas></div>' + debugTable + '</div>';
   if (_evoChart) _evoChart.destroy();
   try {
-    _evoChart = new Chart(document.getElementById('evoCanvas'), {
-      type: 'line',
-      data: { labels: dates, datasets: datasets },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        var ctx = document.getElementById('evoCanvas');
+        if (!ctx) { console.error('[evolution] canvas not found'); return; }
+        _evoChart = new Chart(ctx, {
+          type: 'line',
+          data: { labels: dates, datasets: datasets },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+        console.log('[evolution] chart created');
+      });
     });
-    console.log('[evolution] chart created, dates=', dates, 'datasets=', datasets.length);
   } catch(e) { console.error('[evolution] chart error', e); }
 }
 function renderEvolutionDim(dim) {
@@ -1219,12 +1225,19 @@ function renderRadar() {
     var data = dims.map(function(d) { return Math.min(10, +(t[d] / cnt).toFixed(1)); });
     return { label: comp, data: data, borderColor: compColors[ci % compColors.length], backgroundColor: compColors[ci % compColors.length] + '33' };
   });
-  el.innerHTML = '<div class=card><div class=card-title>竞品博弈图（六大维度对比）</div><canvas id=radarCanvas height=300></canvas></div><div style=font-size:12px;color:var(--text-3);margin-top:8px;text-align:center>分值0-10，数值越高该维度越突出</div>';
+  el.innerHTML = '<div class=card><div class=card-title>竞品博弈图（六大维度对比）</div><div style=position:relative;height:340px><canvas id=radarCanvas></canvas></div></div><div style=font-size:12px;color:var(--text-3);margin-top:8px;text-align:center>分值0-10，数值越高该维度越突出</div>';
   if (_radarChart) _radarChart.destroy();
-  _radarChart = new Chart(document.getElementById('radarCanvas'), {
-    type: 'radar',
-    data: { labels: dims, datasets: datasets },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { r: { min: 0, max: 10 } } }
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      var ctx = document.getElementById('radarCanvas');
+      if (!ctx) { console.error('[radar] canvas not found'); return; }
+      _radarChart = new Chart(ctx, {
+        type: 'radar',
+        data: { labels: dims, datasets: datasets },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { r: { min: 0, max: 10 } } }
+      });
+      console.log('[radar] chart created');
+    });
   });
 }
 function renderCloud() {
