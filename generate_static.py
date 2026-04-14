@@ -6,12 +6,30 @@
 import json
 import os
 import sys
+import sys as _sys
 from pathlib import Path
 from datetime import datetime
 
 _ROOT = Path(__file__).parent
-DB_PATH = _ROOT / "storage" / "data.db"
-OUTPUT_DIR = _ROOT / "docs" / "data"
+
+# --group 参数决定使用哪套数据库和输出目录
+_group = "group1"
+if "--group" in _sys.argv:
+    _idx = _sys.argv.index("--group")
+    if _idx + 1 < len(_sys.argv):
+        _group = _sys.argv[_idx + 1]
+
+if _group == "group2":
+    DB_PATH = _ROOT / "storage" / "data2.db"
+    OUTPUT_DIR = _ROOT / "docs" / "data2"
+    BOARD_HTML_SRC = _ROOT / "docs" / "board2" / "index.html"
+    BOARD_HTML_DST = _ROOT / "docs" / "board2" / "index.html"
+else:
+    DB_PATH = _ROOT / "storage" / "data.db"
+    OUTPUT_DIR = _ROOT / "docs" / "data"
+    BOARD_HTML_SRC = _ROOT / "docs" / "index.html"
+    BOARD_HTML_DST = _ROOT / "docs" / "index.html"
+
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -250,8 +268,8 @@ def export_market_overview():
 # ── 静态页面 ──────────────────────────────────────────────────────────────────
 
 def build_index():
-    # 直接读取 docs/index.html 作为看板，然后用 GITHUB_TOKEN 注入替换占位符
-    index_path = _ROOT / "docs" / "index.html"
+    # 直接读取看板 HTML，然后用 GITHUB_TOKEN 注入替换占位符
+    index_path = BOARD_HTML_SRC
     html = index_path.read_text(encoding="utf-8") if index_path.exists() else ""
     # GITHUB_TOKEN 通过环境变量传入（workflow 的 github.token，CI 运行时有值，本地为空）
     token = os.environ.get("GITHUB_TOKEN", "")
@@ -305,7 +323,7 @@ def main():
     write_json(OUTPUT_DIR / "market.json", market)
 
     index_html = build_index()
-    index_path = _ROOT / "docs" / "index.html"
+    index_path = BOARD_HTML_DST
     index_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.write_text(index_html, encoding="utf-8")
     print(f"  ✓ {index_path.relative_to(_ROOT)}")
