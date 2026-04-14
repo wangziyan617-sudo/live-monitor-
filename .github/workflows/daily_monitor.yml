@@ -1,0 +1,155 @@
+name: 每日直播间监控
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 北京时间 08:00（UTC+8，所以 UTC 00:00）
+  workflow_dispatch:       # 支持手动触发
+    inputs:
+      mode:
+        description: '模式：full=录制+转写+分析，analyze=跳过录制只跑分析，static=仅生成静态页面'
+        required: false
+        default: 'full'
+      duration:
+        description: '录制时长（秒），仅 mode=full 时有效，默认900秒（15分钟）'
+        required: false
+        default: '900'
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RUN_MODE: ${{ github.event.inputs.mode || 'full' }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 安装系统依赖
+        if: env.RUN_MODE == 'full'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            ffmpeg \
+            xvfb \
+            pulseaudio \
+            pulseaudio-utils \
+            x11-utils \
+            libnss3 \
+            libatk-bridge2.0-0 \
+            libdrm2 \
+            libxkbcommon0 \
+            libgbm1 \
+            libasound2t64 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libpango-1.0-0 \
+            libcairo2 \
+            libpulse0 \
+            libasound2-plugins
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装 Python 依赖
+        run: pip install -r requirements.txt
+
+      - name: 安装 Playwright 浏览器
+        if: env.RUN_MODE == 'full'
+        run: playwright install chromium
+
+      - name: 启动虚拟显示和音频
+        if: env.RUN_MODE == 'full'
+        run: |
+          # 启动虚拟显示器
+          Xvfb :99 -screen 0 1280x720x24 -ac &
+          XVFB_PID=$!
+          echo "XVFB_PID=$XVFB_PID" >> $GITHUB_ENV
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+          sleep 3
+          DISPLAY=:99 xdpyinfo | head -5 || echo "Xvfb 启动失败"
+          # 启动虚拟音频
+          pulseaudio --start --exit-idle-time=-1 || true
+          sleep 1
+          pactl load-module module-virtual-sink sink_name=VirtualSink || true
+          pactl set-default-sink VirtualSink || true
+          # 配置 ALSA 默认走 PulseAudio（让 Chromium 的音频走 VirtualSink）
+          cat > ~/.asoundrc << 'EOF'
+          pcm.!default {
+            type pulse
+            fallback "sysdefault"
+            hint {
+              show on
+              description "Default ALSA Output (currently PulseAudio Sound Server)"
+            }
+          }
+          ctl.!default {
+            type pulse
+            fallback "sysdefault"
+          }
+          EOF
+          echo "虚拟显示和音频已启动，VirtualSink = $(pactl get-default-sink)"
+
+      - name: 写入抖音 Cookie
+        if: env.RUN_MODE == 'full'
+        env:
+          DOUYIN_COOKIES: ${{ secrets.DOUYIN_COOKIES }}
+        run: |
+          echo "$DOUYIN_COOKIES" > config/douyin_cookies.json
+          echo "Cookie 已写入 ($(wc -c < config/douyin_cookies.json) bytes)"
+
+      - name: Phase 1 - 并行录制（仅 full 模式）
+        if: env.RUN_MODE == 'full'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_GROUP_ID: ${{ secrets.MINIMAX_GROUP_ID }}
+          DISPLAY: ':99'
+          PULSE_SINK: VirtualSink
+          ALSA_PCM_CARD: pulse
+          LD_PRELOAD: /usr/lib/x86_64-linux-gnu/alsa-lib/libasound_module_pcm_pulse.so
+          RECORD_DURATION: ${{ github.event.inputs.duration || '900' }}
+        run: |
+          python scheduler.py --now --duration $RECORD_DURATION --group group1 &
+          python scheduler.py --now --duration $RECORD_DURATION --group group2 &
+          wait
+
+      - name: Phase 2 - 转写+分析已有视频（full 和 analyze 模式）
+        if: env.RUN_MODE != 'static'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_GROUP_ID: ${{ secrets.MINIMAX_GROUP_ID }}
+        run: |
+          python scheduler.py --phase2-only --group group1 &
+          python scheduler.py --phase2-only --group group2 &
+          wait
+
+      - name: 生成静态数据文件（含 token 注入）
+        # github.token 是 GitHub Actions 内置 token，不会触发 secret scanning
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python generate_static.py --group group1
+          python generate_static.py --group group2
+
+      - name: 提交话术文档、数据库和静态页面到仓库
+        run: |
+          git config user.name "live-monitor-bot"
+          git config user.email "bot@live-monitor"
+          mkdir -p storage/archive
+          # sed 注入了 token，git add 会提交带 token 的 HTML
+          git add docs/ || true
+          git add storage/archive/ storage/archive2/ storage/data.db storage/data2.db || true
+          git diff --staged --quiet || git commit -m "📝 $(date '+%Y-%m-%d') 话术归档 + 静态页面"
+          git push || echo "没有新内容需要推送"
