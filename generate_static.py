@@ -52,8 +52,8 @@ def _parse_json_field(raw):
 
 def export_competitors():
     conn = get_conn()
-    # 确保 brand/stage 列存在（向后兼容旧数据库）
-    for col, dtype in [("brand", "TEXT DEFAULT ''"), ("stage", "TEXT DEFAULT ''")]:
+    # 确保 brand/stage/profile_url 列存在（向后兼容旧数据库）
+    for col, dtype in [("brand", "TEXT DEFAULT ''"), ("stage", "TEXT DEFAULT ''"), ("profile_url", "TEXT DEFAULT ''")]:
         try:
             conn.execute(f"ALTER TABLE competitors ADD COLUMN {col} {dtype}")
         except Exception:
