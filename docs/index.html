@@ -1250,7 +1250,7 @@ function renderCloud() {
   if (!el) return;
   if (!ALL.analyses.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
   var wordCount = {};
-  var stops = '的了是在有和就等不也就很都要跟那能被会让以为应该但也或者而且所以因为如果那么什么怎么多少谁这儿';
+  var stops = '的了是在有和就等不也就很都要跟那能被会让以为应该但也或者而且所以因为如果那么什么怎么多少谁这儿给呗呀啊哎哦嗯嗨哈哎呀我的咱咱们你看你们他她它们这个那个一种样的没还有太真挺蛮好最自己一下一点一哈一直一起起来出来后上去做变成到从向把被让与和或但而且所以因此所以如果那么因为嘛呗啦啦啦嗯哼哎呀嗨';
   var addWords = function(text) {
     if (!text) return;
     var words = text.match(/[一-龥]{2,4}/g) || [];
