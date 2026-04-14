@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      # JSON/data 变更时，自动重新生成含 token 的 HTML 并 deploy
+      # JSON/data 变更时，直接 deploy（不再重新生成，避免覆盖 CI 刚写入的新数据）
       - 'docs/data/**'
       - 'storage/data.db'
       - 'storage/archive/**'
@@ -32,21 +32,22 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: 设置 Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: 安装依赖
-        run: pip install -r requirements.txt --quiet
-
-      - name: 生成含 token 的静态文件
+      - name: 注入 GitHub Token 到 index.html
+        run: |
+          python3 -c "
+          import os
+          html = open('docs/index.html', encoding='utf-8').read()
+          token = os.environ.get('GITHUB_TOKEN', '')
+          if token:
+              html = html.replace('<!-- GITHUB_TOKEN_PLACEHOLDER -->', 'const GITHUB_TOKEN = \"' + token + '\";')
+              print('Token injected (len=%d)' % len(token))
+          else:
+              html = html.replace('<!-- GITHUB_TOKEN_PLACEHOLDER -->', '// GITHUB_TOKEN not available')
+              print('No token available')
+          open('docs/index.html', 'w', encoding='utf-8').write(html)
+          "
         env:
-          # github.token 在 pages 环境里可用（通过 environment secrets）
-          # 但我们用 github.token 的值注入（Actions 自动注入，对 Pages 环境同样有效）
           GITHUB_TOKEN: ${{ github.token }}
-        run: python generate_static.py
 
       - name: 上传 Pages artifact
         uses: actions/upload-pages-artifact@v3
