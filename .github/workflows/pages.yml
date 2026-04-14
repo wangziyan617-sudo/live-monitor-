@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      # JSON/data 变更时，直接 deploy（不再重新生成，避免覆盖 CI 刚写入的新数据）
-      - 'docs/data/**'
+      # 看板HTML或数据变更时，直接 deploy（不再重新生成，避免覆盖 CI 刚写入的新数据）
+      - 'docs/**'
       - 'storage/data.db'
       - 'storage/archive/**'
   workflow_dispatch:    # 手动触发
