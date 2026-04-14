@@ -1250,11 +1250,14 @@ function renderCloud() {
   if (!el) return;
   if (!ALL.analyses.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
   var wordCount = {};
-  var stops = '的了是在有和就等不也就很都要跟那能被会让以为应该但也或者而且所以因为如果那么什么怎么多少谁这儿给呗呀啊哎哦嗯嗨哈哎呀我的咱咱们你看你们他她它们这个那个一种样的没还有太真挺蛮好最自己一下一点一哈一直一起起来出来后上去做变成到从向把被让与和或但而且所以因此所以如果那么因为嘛呗啦啦啦嗯哼哎呀嗨';
+  // 停用词表：语气词、无意义碎片词、品牌账号名
+  var stops = '了的在是有和就等不也就很都要跟那能被会让以为应该但也或者而且所以因为如果那么什么怎么多少谁这儿给呗呀啊哎哦嗯嗨哈哎呀我的咱咱们你看你们他她它们这个那个一种样的没还有太真挺蛮好最自己一下一点一哈一直一起起来出来后上去做变成到从向把被让与和或但而且所以因此嘛呗啦啦啦嗯哼嗨一本小学官方旗舰店图书好物推荐严选一本一本小学一本图书一本好物一本严选本的别是这的家宝贝孩子的可以能够已经经这的话来呢哈啦嘛啥噢诶诶嘛哇哪那这这那这啊哪诶哈喽家人们老铁们小店的店的价格价钱今天直播咱们我们大家直播间的间的';
   var addWords = function(text) {
     if (!text) return;
     var words = text.match(/[一-龥]{2,4}/g) || [];
     words.forEach(function(w) {
+      // 过滤：完整词在停用表里，或者2字词且首字为停用字
+      if (stops.indexOf(w) !== -1) return;
       if (w.length <= 2 && stops.indexOf(w.charAt(0)) !== -1) return;
       wordCount[w] = (wordCount[w] || 0) + 1;
     });
