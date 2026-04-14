@@ -13,6 +13,10 @@ on:
         description: '录制时长（秒），仅 mode=full 时有效，默认900秒（15分钟）'
         required: false
         default: '900'
+      group:
+        description: '竞品组：both=两组同时跑，group1=仅一本，group2=仅语文/数学/英语'
+        required: false
+        default: 'both'
 
 jobs:
   monitor:
@@ -20,6 +24,7 @@ jobs:
     timeout-minutes: 60
     env:
       RUN_MODE: ${{ github.event.inputs.mode || 'full' }}
+      RUN_GROUP: ${{ github.event.inputs.group || 'both' }}
     permissions:
       contents: write
       pages: write
@@ -120,9 +125,15 @@ jobs:
           LD_PRELOAD: /usr/lib/x86_64-linux-gnu/alsa-lib/libasound_module_pcm_pulse.so
           RECORD_DURATION: ${{ github.event.inputs.duration || '900' }}
         run: |
-          python scheduler.py --now --duration $RECORD_DURATION --group group1 &
-          python scheduler.py --now --duration $RECORD_DURATION --group group2 &
-          wait
+          if [ "$RUN_GROUP" = "group1" ]; then
+            python scheduler.py --now --duration $RECORD_DURATION --group group1
+          elif [ "$RUN_GROUP" = "group2" ]; then
+            python scheduler.py --now --duration $RECORD_DURATION --group group2
+          else
+            python scheduler.py --now --duration $RECORD_DURATION --group group1 &
+            python scheduler.py --now --duration $RECORD_DURATION --group group2 &
+            wait
+          fi
 
       - name: Phase 2 - 转写+分析已有视频（full 和 analyze 模式）
         if: env.RUN_MODE != 'static'
@@ -131,17 +142,29 @@ jobs:
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           MINIMAX_GROUP_ID: ${{ secrets.MINIMAX_GROUP_ID }}
         run: |
-          python scheduler.py --phase2-only --group group1 &
-          python scheduler.py --phase2-only --group group2 &
-          wait
+          if [ "$RUN_GROUP" = "group1" ]; then
+            python scheduler.py --phase2-only --group group1
+          elif [ "$RUN_GROUP" = "group2" ]; then
+            python scheduler.py --phase2-only --group group2
+          else
+            python scheduler.py --phase2-only --group group1 &
+            python scheduler.py --phase2-only --group group2 &
+            wait
+          fi
 
       - name: 生成静态数据文件（含 token 注入）
         # github.token 是 GitHub Actions 内置 token，不会触发 secret scanning
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python generate_static.py --group group1
-          python generate_static.py --group group2
+          if [ "$RUN_GROUP" = "group1" ]; then
+            python generate_static.py --group group1
+          elif [ "$RUN_GROUP" = "group2" ]; then
+            python generate_static.py --group group2
+          else
+            python generate_static.py --group group1
+            python generate_static.py --group group2
+          fi
 
       - name: 提交话术文档、数据库和静态页面到仓库
         run: |
