@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "id": 3,
+    "competitor_id": 16,
+    "competitor": "小鹿素养-小学英语官旗店",
+    "recorded_at": "2026-04-14 16:36:30.159741",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养-小学英语官旗店_20260414_1620.mp4",
+    "duration": 310.88,
+    "status": "recorded"
+  },
+  {
+    "id": 2,
+    "competitor_id": 12,
+    "competitor": "张文晖-满分数学张老师",
+    "recorded_at": "2026-04-14 16:36:29.435944",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260414_1621.mp4",
+    "duration": 311.0,
+    "status": "recorded"
+  },
+  {
+    "id": 1,
+    "competitor_id": 11,
+    "competitor": "清北老师数学名师堂",
+    "recorded_at": "2026-04-14 16:36:29.220680",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/清北老师数学名师堂_20260414_1620.mp4",
+    "duration": 311.076,
+    "status": "recorded"
+  }
+]
