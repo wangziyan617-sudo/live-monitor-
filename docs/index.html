@@ -280,6 +280,8 @@ let currentTab = "compare";
 
 const STATUS_LABEL = { recorded: "已录制", transcribed: "已转写", analyzed: "已分析" };
 const STATUS_CLASS = { recorded: "s-recorded", transcribed: "s-transcribed", analyzed: "s-analyzed" };
+// 安全数组：非数组真值返回空数组，避免 forEach 崩溃
+var safeArr = function(a) { return Array.isArray(a) ? a : []; };
 
 // ─── 初始化 ───────────────────────────────────────────────────────────────────
 async function init() {
@@ -495,17 +497,17 @@ function openProductDetail(productIdx, sessionId) {
       if (p.selling_points && p.selling_points.length) lines.push("卖点: " + p.selling_points.join("；"));
       if (p.scripts && p.scripts.length) {
         lines.push("【话术片段】");
-        p.scripts.forEach(function(sc) { lines.push("  [" + (sc.timestamp||'') + "] " + (sc.type||'') + ": " + (sc.content||'')); });
+        safeArr(p.scripts).forEach(function(sc) { lines.push("  [" + (sc.timestamp||'') + "] " + (sc.type||'') + ": " + (sc.content||'')); });
       }
     }
     if (a) {
       if (a.sales_scripts && a.sales_scripts.length) {
         lines.push("【全部话术片段】");
-        a.sales_scripts.forEach(function(sc) { lines.push("  [" + (sc.timestamp||'') + "] " + (sc.type||'') + ": " + (sc.content||'')); });
+        safeArr(a.sales_scripts).forEach(function(sc) { lines.push("  [" + (sc.timestamp||'') + "] " + (sc.type||'') + ": " + (sc.content||'')); });
       }
       if (a.user_persona) { lines.push("【用户画像】"); lines.push(a.user_persona); }
       if (a.strategy_summary) { lines.push("【话术策略】"); lines.push(a.strategy_summary); }
-      if (a.highlights && a.highlights.length) { lines.push("【Highlights】"); a.highlights.forEach(function(h){ lines.push("• " + h); }); }
+      if (a.highlights && a.highlights.length) { lines.push("【Highlights】"); safeArr(a.highlights).forEach(function(h){ lines.push("• " + h); }); }
     }
     if (t && t.full_text) {
       lines.push("【完整逐字稿】");
@@ -576,7 +578,7 @@ function openProductDetail(productIdx, sessionId) {
     productInfo +
     (a && a.user_persona ? '<div class="section-label" style="margin-top:16px">用户画像</div><div class="persona-text">' + escHtml(a.user_persona) + '</div>' : '') +
     (a && a.strategy_summary ? '<div class="section-label" style="margin-top:16px">话术策略</div><div class="strategy-text">' + escHtml(a.strategy_summary) + '</div>' : '') +
-    (a && a.highlights && a.highlights.length ? '<div class="section-label" style="margin-top:16px">Highlights</div>' + a.highlights.map(function(h){ return '<div class="highlight-item">• ' + escHtml(h) + '</div>'; }).join('') : '') +
+    (a && a.highlights && a.highlights.length ? '<div class="section-label" style="margin-top:16px">Highlights</div>' + safeArr(a.highlights).map(function(h){ return '<div class="highlight-item">• ' + escHtml(h) + '</div>'; }).join('') : '') +
     '</div>' +
 
     // 话术 tab
@@ -866,7 +868,7 @@ var SCRIPT_TYPE_LABELS = {
 
 function groupScriptsByType(scripts) {
   var groups = {};
-  scripts.forEach(function(sc) {
+  safeArr(scripts).forEach(function(sc) {
     var t = sc.type || "其他";
     if (!groups[t]) groups[t] = [];
     groups[t].push(sc);
@@ -884,7 +886,7 @@ function renderProductScripts(kps) {
   if (!kps || !kps.length) return "";
   var html = "";
   kps.forEach(function(p, pi) {
-    var scripts = p.scripts || [];
+    var scripts = safeArr(p.scripts);
     var sps = p.selling_points || [];
     var price = cleanPrice(p.price);
     // 判断是否有产品级话术
@@ -1080,14 +1082,15 @@ function renderEvolution() {
       seriesMap[date][comp] = scores;
     }
     var tally = function(scripts) {
-      (scripts || []).forEach(function(sc) {
+      if (!Array.isArray(scripts)) return;
+      scripts.forEach(function(sc) {
         var mapped = dimMap[sc.type || ''];
         if (mapped) seriesMap[date][comp][mapped] += 2;
         seriesMap[date][comp].count++;
       });
     };
-    (a.sales_scripts || []).forEach(tally);
-    (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(tally); });
+    safeArr(a.sales_scripts).forEach(tally);
+    safeArr(a.key_products).forEach(function(p) { safeArr(p.scripts).forEach(tally); });
   });
   var dates = Object.keys(seriesMap).sort();
   console.log('[evolution] seriesMap dates=', dates, 'competitors=', competitors, 'firstEntry=', JSON.stringify(seriesMap[dates[0]]));
@@ -1163,13 +1166,14 @@ function renderEvolutionDim(dim) {
     if (!seriesMap[date]) seriesMap[date] = {};
     if (!seriesMap[date][comp]) { var sc = {}; sc[dim] = 0; sc.count = 0; seriesMap[date][comp] = sc; }
     var tally = function(scripts) {
-      (scripts || []).forEach(function(sc) {
+      if (!Array.isArray(scripts)) return;
+      scripts.forEach(function(sc) {
         var mapped = dimMap[sc.type || ''];
         if (mapped === dim) { seriesMap[date][comp][dim] += 2; seriesMap[date][comp].count++; }
       });
     };
-    (a.sales_scripts || []).forEach(tally);
-    (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(tally); });
+    safeArr(a.sales_scripts).forEach(tally);
+    safeArr(a.key_products).forEach(function(p) { safeArr(p.scripts).forEach(tally); });
   });
   var dates = Object.keys(seriesMap).sort();
   var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
@@ -1209,14 +1213,15 @@ function renderRadar() {
     if (competitors.indexOf(comp) === -1) competitors.push(comp);
     if (!compTotals[comp]) { var t = {}; dims.forEach(function(d) { t[d] = 0; }); t.count = 0; compTotals[comp] = t; }
     var tally = function(scripts) {
-      (scripts || []).forEach(function(sc) {
+      if (!Array.isArray(scripts)) return;
+      scripts.forEach(function(sc) {
         var mapped = typeToDim[sc.type || ''];
         if (mapped) compTotals[comp][mapped] += 2;
         compTotals[comp].count++;
       });
     };
-    (a.sales_scripts || []).forEach(tally);
-    (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(tally); });
+    safeArr(a.sales_scripts).forEach(tally);
+    safeArr(a.key_products).forEach(function(p) { safeArr(p.scripts).forEach(tally); });
   });
   if (!competitors.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
   var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
@@ -1255,8 +1260,8 @@ function renderCloud() {
     });
   };
   ALL.analyses.forEach(function(a) {
-    (a.sales_scripts || []).forEach(function(sc) { addWords(sc.content || ''); });
-    (a.key_products || []).forEach(function(p) { (p.scripts || []).forEach(function(sc) { addWords(sc.content || ''); }); });
+    safeArr(a.sales_scripts).forEach(function(sc) { addWords(sc.content || ''); });
+    safeArr(a.key_products).forEach(function(p) { safeArr(p.scripts).forEach(function(sc) { addWords(sc.content || ''); }); });
   });
   var sorted = Object.entries(wordCount).filter(function(e) { return e[1] >= 3; }).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 80);
   if (!sorted.length) { el.innerHTML = '<div class=empty>暂无足够话术数据</div>'; return; }
