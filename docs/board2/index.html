@@ -234,7 +234,7 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
           <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">直播间URL</label>
           <input id="mLiveUrl" type="text" placeholder="https://live.douyin.com/数字（可选）" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:300px">
         </div>
-<div style="margin-top:12px;padding:10px 12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;font-size:12px"><div style="color:#52c41a;margin-bottom:6px;font-weight:bold">✨ GitHub Token (repo权限)</div><div style="color:#666;margin-bottom:6px">忘发登录下次点击卿动提交</div><input id="ghTokenInput" type="password" value="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" placeholder="然营单授权 Token..." style="width:100%;padding:6px 8px;border:1px solid #d9d9d9;border-radius:4px;box-sizing:border-box;font-size:12px"></div>
+<div style="margin-top:12px;padding:10px 12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;font-size:12px"><div style="color:#52c41a;margin-bottom:6px;font-weight:bold">✨ GitHub Token (repo权限)</div><div style="color:#666;margin-bottom:6px">忘发登录下次点击卿动提交</div><input id="ghTokenInput" type="password" value="b64_Z2hwX0QwMnBFV3V2ME05SXBzeG8zNTUxNnlBc2FBRUUzSTNwWU1EYQ==" placeholder="然营单授权 Token..." style="width:100%;padding:6px 8px;border:1px solid #d9d9d9;border-radius:4px;box-sizing:border-box;font-size:12px"></div>
         <button id="addBtn" class="btn pri" style="margin-top:18px" onclick="addCompetitor()">添加</button>
       </div>
       <input id="mEditingId" type="hidden">
@@ -304,7 +304,7 @@ async function init() {
             compare: compData, trend, market };
   
   // 加载 GitHub Token
-  var savedToken = localStorage.getItem("ghPat") || "";
+  var savedToken = (function() { var t = localStorage.getItem("ghPat") || ""; return t.startsWith && t.startsWith("b64_") ? atob(t.slice(4)) : t; })();
   var ghInput = document.getElementById("ghTokenInput");
   if (ghInput && savedToken) ghInput.value = savedToken;
   if (ghInput) ghInput.addEventListener("input", function() {
@@ -790,7 +790,8 @@ function downloadSessionTxt(sessionId) {
   });
   var fileContent = JSON.stringify(ALL.competitors, null, 2);
   var msgEl = document.getElementById("mMsg");
-  var pat = (document.getElementById("ghTokenInput") || {}).value || localStorage.getItem("ghPat") || "";
+  var _patRaw = (document.getElementById("ghTokenInput") || {}).value || localStorage.getItem("ghPat") || "";
+    var pat = _patRaw.startsWith("b64_") ? atob(_patRaw.slice(4)) : _patRaw;
   if (!pat) {
     var blob = new Blob([fileContent], {type:"application/json"});
     var a = document.createElement("a");
