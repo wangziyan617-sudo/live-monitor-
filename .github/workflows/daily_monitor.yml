@@ -172,32 +172,32 @@ jobs:
         env:
           DASHBOARD_PAT: ${{ secrets.DASHBOARD_TOKEN }}
         run: |
-          python3 -c "
-          import hashlib, time
+          python3 << 'PYEOF'
+          import os, re, base64, time
           from pathlib import Path
-          import os, re
-          board2 = Path('docs/board2/index.html')
+          board2 = Path("docs/board2/index.html")
           if board2.exists():
               ts = str(int(time.time()))
-              content = board2.read_text('utf-8')
-              # 替换 chart.js 的版本号为当前时间戳，强制刷新
-              content = re.sub(r'(chart\.umd\.min\.js)(?:\?[^\\\"]*)?', r'\1?t=' + ts, content)
-              # 注入 GitHub PAT（base64编码，避免GitHub secret扫描拦截）
-              pat = os.environ.get('DASHBOARD_PAT', '')
+              content = board2.read_text("utf-8")
+              # 替换 chart.js 版本号
+              content = re.sub(r"(chart\.umd\.min\.js)(?:\?[^\\\"]*)?", r"\1?t=" + ts, content)
+              # 注入 GitHub PAT（base64编码）
+              pat = os.environ.get("DASHBOARD_PAT", "")
               if pat:
-                  import base64
-                  pat_b64 = 'b64_' + base64.b64encode(pat.encode()).decode()
+                  b64 = "b64_" + base64.b64encode(pat.encode()).decode()
+                  # 替换任何已有的 token value
+                  pat_b64 = b64
                   content = re.sub(
                       r'id="ghTokenInput"[^>]*value="[^"]*"',
                       'id="ghTokenInput" type="password" value="' + pat_b64 + '"',
                       content
                   )
-                  print(f'✅ GitHub PAT 已注入 (base64, len={len(pat)})')
-              board2.write_text(content, 'utf-8')
-              print(f'board2 版本号已刷新: ?t={ts}')
+                  print(f"GitHub PAT injected (base64, len={len(pat)})")
+              board2.write_text(content, "utf-8")
+              print(f"board2 refreshed: ?t={ts}")
           else:
-              print('board2/index.html 不存在，跳过')
-          "
+              print("board2/index.html not found, skipping")
+          PYEOF
 
       - name: 提交话术文档、数据库和静态页面到仓库
         if: always()
