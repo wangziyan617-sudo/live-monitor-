@@ -207,7 +207,10 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
       <label>日期</label>
       <select id="fSessDate" onchange="renderSessions()"><option value="">全部</option></select>
       <label>🔍</label>
-      <input type="search" id="fSessSearch" placeholder="搜索账号…" oninput="renderSessions()">
+      <label title="显示录制<5分钟或转写<1000字的低质量场次">
+		<input type="checkbox" id="fSessShowBad" onchange="renderSessions()" style="margin-left:8px"> 显示低质量数据
+	      </label>
+	      <input type="search" id="fSessSearch" placeholder="搜索账号…" oninput="renderSessions()">
     </div>
     <div id="sessionsContent"><div class="loading">加载中…</div></div>
   </div>
@@ -638,7 +641,17 @@ function downloadProductTxt(sessionId, productIdx) {
 	  const date = document.getElementById("fSessDate").value;
 	  const kw = document.getElementById("fSessSearch").value.trim().toLowerCase();
 
+	  var hideBad = !document.getElementById("fSessShowBad") || !document.getElementById("fSessShowBad").checked;
+	  var sessionLen = {};
+	  ALL.transcripts.forEach(function(t) {
+	    sessionLen[t.session_id] = (t.full_text || '').length;
+	  });
 	  let rows = ALL.sessions.slice();
+	  rows = rows.filter(function(s) {
+	    if (hideBad && s.duration < 300) return false;
+	    if (hideBad && (sessionLen[s.id] || 0) < 1000) return false;
+	    return true;
+	  });
 	  if (compId) rows = rows.filter(function(s) { return s.competitor_id === compId; });
 	  if (date) rows = rows.filter(function(s) { return s.recorded_at.startsWith(date); });
 	  if (kw) rows = rows.filter(function(s) { return s.competitor.toLowerCase().indexOf(kw) !== -1; });
@@ -657,12 +670,13 @@ function downloadProductTxt(sessionId, productIdx) {
 	      '<td>' + getMainProduct(s.id) + '</td>' +
 	      '<td>' + (s.status === 'analyzed' ? '<span class="badge-status s-analyzed">已分析</span>' : s.status === 'transcribed' ? '<span class="badge-status s-transcribed">已转写</span>' : '<span class="badge-status s-recorded">已录制</span>') + '</td>' +
 	      '<td><button class="btn btn-sm" onclick="openProductDetail(null, ' + s.id + ')">查看详情</button></td>' +
-	      '<td><button class="btn btn-sm" onclick="downloadSessionTxt(' + s.id + ')">📥 下载逐字稿</button></td>' +
+	      '<td><button class="btn btn-sm" onclick="downloadSessionTxt(' + s.id + ')">📥</button></td>' +
+	      '<td><button class="btn btn-sm" onclick="deleteSession(' + s.id + ')" style="color:var(--red);border-color:#ffccc7">删除</button></td>' +
 	      '</tr>';
 	  });
 
 	  el.innerHTML = '<div class="card"><div class="table-wrap"><table>' +
-	    '<thead><tr><th>账号</th><th>日期</th><th>提取时间</th><th>商品</th><th>状态</th><th></th><th></th></tr></thead>' +
+	    '<thead><tr><th>账号</th><th>日期</th><th>提取时间</th><th>商品</th><th>状态</th><th></th><th></th><th>操作</th></tr></thead>' +
 	    '<tbody>' + tbody + '</tbody></table></div></div>';
 	}
 
@@ -673,6 +687,19 @@ function downloadProductTxt(sessionId, productIdx) {
 	  var p = a.key_products[0];
 	  var price = p.price ? '<span style="color:var(--red);font-weight:600">¥' + escHtml(cleanPrice(p.price)) + '</span>' : '';
 	  return '<span style="font-size:13px">' + escHtml(p.name || '—') + ' ' + price + '</span>';
+	}
+
+function deleteSession(sessionId) {
+	  if (!confirm('确定删除该场次？删除后需在GitHub上手动提交。')) return;
+	  var sessions = ALL.sessions.filter(function(s) { return s.id !== sessionId; });
+	  var fileContent = JSON.stringify(sessions, null, 2);
+	  var blob = new Blob([fileContent], {type:"application/json"});
+	  var a = document.createElement("a");
+	  a.href = URL.createObjectURL(blob);
+	  a.download = 'sessions.json';
+	  a.click();
+	  URL.revokeObjectURL(a.href);
+	  alert('已下载 sessions.json，请在GitHub上手动提交以完成删除。');
 	}
 
 function downloadSessionTxt(sessionId) {
