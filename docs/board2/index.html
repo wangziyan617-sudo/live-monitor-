@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>竞品直播间监控看板 · 语文/数学/英语</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?t=20260415"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?t=20260415v4"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -291,13 +291,13 @@ async function init() {
   let errMsg = "";
   try {
     const [comp, sess, analy, trans, compData, trend, market] = await Promise.all([
-      fetch("../data2/competitors.json").then(r => { if (!r.ok) throw new Error("competitors.json 加载失败"); return r.json(); }),
-      fetch("../data2/sessions.json").then(r => { if (!r.ok) throw new Error("sessions.json 加载失败"); return r.json(); }),
-      fetch("../data2/analyses.json").then(r => { if (!r.ok) throw new Error("analyses.json 加载失败"); return r.json(); }),
-      fetch("../data2/transcripts.json").then(r => { if (!r.ok) throw new Error("transcripts.json 加载失败"); return r.json(); }),
-      fetch("../data2/compare.json").then(r => { if (!r.ok) throw new Error("compare.json 加载失败"); return r.json(); }),
-      fetch("../data2/trend.json").then(r => { if (!r.ok) throw new Error("trend.json 加载失败"); return r.json(); }),
-      fetch("../data2/market.json").then(r => { if (!r.ok) throw new Error("market.json 加载失败"); return r.json(); }),
+      fetch("../data2/../data2/competitors.json").then(r => { if (!r.ok) throw new Error("competitors.json 加载失败"); return r.json(); }),
+      fetch("../data2/../data2/sessions.json").then(r => { if (!r.ok) throw new Error("sessions.json 加载失败"); return r.json(); }),
+      fetch("../data2/../data2/analyses.json").then(r => { if (!r.ok) throw new Error("analyses.json 加载失败"); return r.json(); }),
+      fetch("../data2/../data2/transcripts.json").then(r => { if (!r.ok) throw new Error("transcripts.json 加载失败"); return r.json(); }),
+      fetch("../data2/../data2/compare.json").then(r => { if (!r.ok) throw new Error("compare.json 加载失败"); return r.json(); }),
+      fetch("../data2/../data2/trend.json").then(r => { if (!r.ok) throw new Error("trend.json 加载失败"); return r.json(); }),
+      fetch("../data2/../data2/market.json").then(r => { if (!r.ok) throw new Error("market.json 加载失败"); return r.json(); }),
     ]);
     ALL = { competitors: comp, sessions: sess, analyses: analy, transcripts: trans,
             compare: compData, trend, market };
