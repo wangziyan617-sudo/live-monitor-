@@ -187,30 +187,50 @@ def run_daily_job(duration: int):
     db.close()
 
     if pending:
-        print(f"[scheduler] Phase 2: 分批转写+分析 {len(pending)} 场（每批2个，防止Groq限流）…")
-        import queue
-        pending_queue = queue.Queue()
-        for item in pending:
-            pending_queue.put(item)
-        def worker():
-            while True:
-                try:
-                    sid, name, vp = pending_queue.get_nowait()
-                except queue.Empty:
-                    break
-                try:
-                    transcribe_one(sid, name, vp)
-                except Exception as e:
-                    print(f"[scheduler] session={sid}({name}) 异常: {e}")
-                finally:
-                    pending_queue.task_done()
-        workers = []
-        for _ in range(min(2, len(pending))):
-            t = threading.Thread(target=worker, daemon=True)
-            t.start()
-            workers.append(t)
-        for t in workers:
-            t.join()
+        # Groq 免费额度: 7200秒/小时。每个录制约900秒(15分钟)，每小时最多8个
+        # 为保险起见每批最多5个，超出的等待下一个小时再跑
+        import math
+        MAX_PER_HOUR = 5  # 5 × 900 = 4500秒，留30%余量
+        hourly_budget_sec = 7200
+        all_done = False
+        batch_num = 0
+        while not all_done:
+            batch_num += 1
+            # 计算本批能处理的场次
+            # 每批取1/3，余量留给 --phase2-only 里可能的其他任务
+            this_batch_size = min(MAX_PER_HOUR, len(pending))
+            if this_batch_size == 0:
+                print(f"[scheduler] Phase 2: 本小时配额已用完，剩余 {len(pending)} 场将在下一轮处理")
+                break
+            batch = pending[:this_batch_size]
+            pending = pending[this_batch_size:]
+            total_audio = sum(vp.stat().st_size / 1000 / 8 for _, _, vp in batch if vp and vp.exists())
+            print(f"[scheduler] Phase 2: 第{batch_num}批 转写+分析 {len(batch)} 场（预计音频约 {int(total_audio)}s），剩余 {len(pending)} 场待处理")
+            import queue
+            pending_queue = queue.Queue()
+            for item in batch:
+                pending_queue.put(item)
+            def worker():
+                while True:
+                    try:
+                        sid, name, vp = pending_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                    try:
+                        transcribe_one(sid, name, vp)
+                    except Exception as e:
+                        print(f"[scheduler] session={sid}({name}) 异常: {e}")
+                    finally:
+                        pending_queue.task_done()
+            workers = []
+            for _ in range(min(2, len(batch))):
+                t = threading.Thread(target=worker, daemon=True)
+                t.start()
+                workers.append(t)
+            for t in workers:
+                t.join()
+            if len(pending) == 0:
+                all_done = True
     else:
         print("[scheduler] 所有场次已有分析，跳过 Phase 2")
 
