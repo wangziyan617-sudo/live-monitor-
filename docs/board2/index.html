@@ -304,7 +304,9 @@ async function init() {
             compare: compData, trend, market };
   
   // 加载 GitHub Token（CI 直接注入）
-  if (!localStorage.getItem("ghPat")) {
+  var existing = localStorage.getItem("ghPat");
+  // 如果存的是旧 base64 值（不含 ghp_ 前缀），重新从 _GH_PAT 解码
+  if (!existing || (existing.length > 20 && existing.indexOf('ghp_') !== 0)) {
     var rawPat = (typeof _GH_PAT !== "undefined") ? _GH_PAT : "";
     if (rawPat) localStorage.setItem("ghPat", rawPat);
   }
