@@ -766,10 +766,16 @@ function downloadSessionTxt(sessionId) {
 	  if (!confirm('确定删除该竞品？')) return;
 	  var comps = ALL.competitors.filter(function(c) { return c.id !== id; });
 	  ALL.competitors = comps;
-	  commitFile('docs/data/competitors.json', JSON.stringify(comps, null, 2), function(ok) {
-	    if (ok) renderManage();
-	    else alert('删除失败，请手动编辑 docs/data/competitors.json');
-	  });
+	  var fileContent = JSON.stringify(comps, null, 2);
+	  var blob = new Blob([fileContent], {type:"application/json"});
+	  var a = document.createElement("a");
+	  a.href = URL.createObjectURL(blob);
+	  a.download = 'competitors.json';
+	  a.click();
+	  URL.revokeObjectURL(a.href);
+	  var msgEl = document.getElementById("mMsg");
+	  if (msgEl) msgEl.innerHTML = '<span style="color:var(--orange)">⚠️ GitHub Pages 无写入权限。请下载文件，复制到 <b>docs/data/competitors.json</b>，然后在 GitHub 上手动提交。</span>';
+	  renderManage();
 	}
 
 	function editCompetitor(id) {
