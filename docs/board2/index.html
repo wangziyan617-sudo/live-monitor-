@@ -359,49 +359,62 @@ async function init() {
 
 // ─── 账号概览 ─────────────────────────────────────────────────────────────────
 function renderAccountsOverview() {
-  const el = document.getElementById("accountsOverview");
-  const competitors = ALL.competitors;
+  var el = document.getElementById("accountsOverview");
+  var competitors = ALL.competitors;
+  if (!competitors.length) { el.innerHTML = '<div class="empty">no accounts</div>'; return; }
 
-  if (!competitors.length) {
-    el.innerHTML = '<div class="empty">暂无账号数据</div>';
-    return;
+  // 从账号名称推断品牌
+  var BRAND_PREFIXES = ['è±ç¥', 'å­å¯¹', 'åè¾å¯¼', 'å°é¹', 'å«å«', 'æ¸å', 'å¼ ææ', 'æ¯æº'];
+  var BRAND_NAMES = {'è±ç¥':'è±ç¥æè²', 'å­å¯¹':'å­å¯¹éè¯»', 'åè¾å¯¼':'åè¾è¾', 'å°é¹':'å°é¹ç´ å¼', 'å«å«':'å«å«éè¯»', 'æ¸å':'æ¸åè¯è¯', 'å¼ ææ':'å¼ æææè²', 'æ¯æº':'æ¯æºå­ä¹ '};
+  function getBrand(name) {
+    for (var i = 0; i < BRAND_PREFIXES.length; i++) {
+      if (name.indexOf(BRAND_PREFIXES[i]) === 0) return BRAND_NAMES[BRAND_PREFIXES[i]] || BRAND_PREFIXES[i];
+    }
+    return 'å¶ä»';
   }
+  var groups = {};
+  competitors.forEach(function(c) {
+    var brand = getBrand(c.name);
+    if (!groups[brand]) groups[brand] = [];
+    groups[brand].push(c);
+  });
+  var brandOrder = Object.keys(groups).sort();
 
-  const brands = competitors; // 每个 entry 就是一个品牌/账号
-  const total = brands.length;
-
-  // 品牌汇总行
-  let headerHtml = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">' +
+  var total = competitors.length;
+  var headerHtml = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">' +
     '<div style="font-size:22px;font-weight:700;color:var(--blue)">' + total + '</div>' +
-    '<div style="font-size:14px;color:var(--text-2)">个账号</div>' +
-    '<div style="margin-left:auto;font-size:12px;color:var(--text-3)">每日北京时间 08:00 自动更新</div>' +
+    '<div style="font-size:14px;color:var(--text-2)">ä¸ªè´¦å·</div>' +
+    '<div style="margin-left:auto;font-size:12px;color:var(--text-3)">æ¯æ¥åäº¬æ¶é´ 08:00 èªå¨æ´æ°</div>' +
     '</div>';
 
-  // 账号卡片网格
-  const cardsHtml = brands.map(function(c) {
-    // 找这个账号对应的场次
-    var sessions = ALL.sessions.filter(function(s) { return String(s.competitor_id) === String(c.id) || s.competitor === c.name; });
-    var analyzed = sessions.filter(function(s) { return s.status === "analyzed"; }).length;
-    var lastSession = sessions.length ? sessions.reduce(function(a, b) {
-      return a.recorded_at > b.recorded_at ? a : b;
-    }) : null;
-    var lastDate = lastSession ? lastSession.recorded_at.slice(0, 10) : "—";
-    var lastDuration = lastSession && lastSession.duration ? Math.round(lastSession.duration / 60) + "分钟" : "";
-
-    return '<div style="background:#fafafa;border-radius:8px;padding:14px 16px;border:1px solid #f0f0f0;min-width:180px">' +
-      '<div style="font-weight:700;font-size:15px;margin-bottom:6px;color:var(--text)">' + escHtml(c.name) + '</div>' +
-      '<div style="font-size:12px;color:var(--text-3)">' +
-      '<div>最近采集: ' + lastDate + (lastDuration ? ' · ' + lastDuration : '') + '</div>' +
-      '<div style="margin-top:2px">采集 ' + sessions.length + ' 场' +
-      (analyzed > 0 ? ' · <span style="color:var(--green);font-weight:600">' + analyzed + ' 已分析</span>' : '') +
+  var BRAND_COLORS = {'è±ç¥æè²':'#722ed1','å­å¯¹éè¯»':'#52c41a','åè¾è¾':'#f5222d','å°é¹ç´ å¼':'#fa8c16','å«å«éè¯»':'#eb2f96','æ¸åè¯è¯':'#13c2c2','å¼ æææè²':'#faad14','æ¯æºå­ä¹ ':'#2f54d0','å¶ä»':'#666'};
+  var html = brandOrder.map(function(brand) {
+    var color = BRAND_COLORS[brand] || '#666';
+    var cards = groups[brand].map(function(c) {
+      var sessions = ALL.sessions.filter(function(s) { return String(s.competitor_id) === String(c.id) || s.competitor === c.name; });
+      var analyzed = sessions.filter(function(s) { return s.status === "analyzed"; }).length;
+      var lastS = sessions.length ? sessions.reduce(function(a,b){ return a.recorded_at > b.recorded_at ? a : b; }) : null;
+      var lastDate = lastS ? lastS.recorded_at.slice(0,10) : "â";
+      var lastDur = lastS && lastS.duration ? Math.round(lastS.duration/60) + 'åé' : "";
+      return '<div style="background:#fafafa;border-radius:8px;padding:14px 16px;border:1px solid #f0f0f0;min-width:160px;flex:1">' +
+        '<div style="font-weight:700;font-size:15px;margin-bottom:6px;color:var(--text)">' + escHtml(c.name) + '</div>' +
+        '<div style="font-size:12px;color:var(--text-3)">' +
+        '<div>' + lastDate + (lastDur ? ' Â· ' + lastDur : '') + '</div>' +
+        '<div style="margin-top:2px">éé ' + sessions.length + ' åº' +
+        (analyzed > 0 ? ' Â· <span style="color:var(--green);font-weight:600">' + analyzed + ' å·²åæ</span>' : '') +
+        '</div></div></div>';
+    }).join('');
+    return '<div style="margin-bottom:20px">' +
+      '<div style="font-size:13px;font-weight:700;color:' + color + ';margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid ' + color + ';display:flex;align-items:center;gap:8px">' +
+      '<span>' + brand + '</span><span style="font-size:12px;font-weight:400;color:#999">(' + groups[brand].length + ' ä¸ª)</span>' +
       '</div>' +
-      '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px">' + cards + '</div>' +
       '</div>';
-  }).join("");
+  }).join('');
 
-  el.innerHTML = headerHtml +
-    '<div style="display:flex;flex-wrap:wrap;gap:12px">' + cardsHtml + '</div>';
+  el.innerHTML = headerHtml + html;
 }
+
 
 // ─── 标签切换 ─────────────────────────────────────────────────────────────────
 function switchTab(tab) {
@@ -1310,7 +1323,7 @@ function renderRadar() {
     var data = dims.map(function(d) { return Math.min(10, +(t[d] / cnt).toFixed(1)); });
     return { label: comp, data: data, borderColor: compColors[ci % compColors.length], backgroundColor: compColors[ci % compColors.length] + '33' };
   });
-  el.innerHTML = '<div class=card><div class=card-title>竞品博弈图（六大维度对比）</div><div style=position:relative;height:340px><canvas id=radarCanvas></canvas></div></div><div style=font-size:12px;color:var(--text-3);margin-top:8px;text-align:center>分值0-10，数值越高该维度越突出</div>';
+  var compSel = '<div style=margin-bottom:12px;font-size:13px>' + 'é00å¯¹æ¯(æå¤5ä¸ª): <select id=radarCompSel multiple size=3 style=font-size:13px onchange=renderRadarComp()>' + competitors.map(function(c){ return '<option value=' + competitors.indexOf(c) + '>' + c + '</option>'; }).join('') + '</select></div>'; el.innerHTML = '<div class=card><div class=card-title>ç«ååå¼å¾ï¼å­å¤§ç»´åº¦å¯¹æ¯ï¼</div>' + compSel + '<div style=position:relative;height:340px><canvas id=radarCanvas></canvas></div></div><div style=font-size:12px;color:var(--text-3);margin-top:8px;text-align:center>åå¼0-10ï¼æ°å¼è¶é«è¯¥ç»´åº¦è¶ç«åº</div>';
   if (_radarChart) _radarChart.destroy();
   requestAnimationFrame(function() {
     requestAnimationFrame(function() {
@@ -1325,6 +1338,45 @@ function renderRadar() {
     });
   });
 }
+
+function renderRadarComp() {
+  var el = document.getElementById("radarContent");
+  var sel = document.getElementById("radarCompSel");
+  if (!el || !sel) return;
+  var selectedOpts = [].slice.call(sel.options).filter(function(o){ return o.selected; });
+  var selectedComps = selectedOpts.map(function(o){ return sel.options[parseInt(o.value)].textContent; });
+  if (!selectedComps.length) { el.innerHTML = '<div class=empty>è¯·éæ©è´¨å°ä¸ä¸ªç«å</div>'; return; }
+  // 复用 renderRadar 的数据结构逻辑，但只选中的
+  var typeToDim = {
+    'ä¿ééå':'éååå¨','éå':'éååå¨','æ®åºç ç':'éååå¨',
+    'çåºåäº¦':'äº¦éæ·±åº¦','çåº':'äº¦éæ·±åº¦','ä½¿ç¨åºæ¯':'äº¦éæ·±åº¦',
+    'ä¸ä¸åº¦':'ä¸ä¸åº¦','å¼åºç½':'ä¸ä¸åº¦','ä¿¡ä»¬è%E4¸ª':'ä¸ä¸åº¦',
+    'ä»¥å¨ä¿é':'æå¡ä¿é','çæ¬è¯´æ':'æå¡ä¿é',
+    'ä»¥å¨éå':'ä»¥å¨è¯å¯¼','äº§åä»ç»':'ä»¥å¨è¯å¯¼','äº§ååè½':'ä»¥å¨è¯å¯¼',
+  };
+  var dims = ['éååå¨','äº¦éæ·±åº¦','ä»¥å¨è¯å¯¼','ä¸ä¸åº¦','æå¡ä¿é','ç¦èåé '];
+  var compTotals = {}; selectedComps.forEach(function(c){ compTotals[c] = {}; dims.forEach(function(d){ compTotals[c][d] = 0; }); compTotals[c].count = 0; });
+  ALL.sessions.forEach(function(s) {
+    if (s.status !== 'analyzed') return;
+    if (selectedComps.indexOf(s.competitor) === -1) return;
+    var a = ALL.analyses.find(function(x){ return x.session_id === s.id; });
+    if (!a) return;
+    var tally = function(scripts) { if (!Array.isArray(scripts)) return; scripts.forEach(function(sc) { var mapped = typeToDim[sc.type||'']; if (mapped) compTotals[s.competitor][mapped] += 2; compTotals[s.competitor].count++; }); };
+    safeArr(a.sales_scripts).forEach(tally);
+    safeArr(a.key_products).forEach(function(p){ safeArr(p.scripts).forEach(tally); });
+  });
+  var compColors = ['#1677ff','#52c41a','#fa8c16','#f5222d','#722ed1','#13c2c2','#eb2f96','#faad14'];
+  var datasets = selectedComps.map(function(comp, ci) {
+    var t = compTotals[comp]; var cnt = t.count||1;
+    var data = dims.map(function(d){ return Math.min(10, +(t[d]/cnt).toFixed(1)); });
+    return { label: comp, data: data, borderColor: compColors[ci%8], backgroundColor: compColors[ci%8]+'33' };
+  });
+  if (!_radarChart) return;
+  _radarChart.data.labels = dims;
+  _radarChart.data.datasets = datasets;
+  _radarChart.update();
+}
+
 function initCloudFilters() {
   var brandSel = document.getElementById("fCloudBrand");
   var dateSel = document.getElementById("fCloudDate");
