@@ -727,11 +727,11 @@ function downloadSessionTxt(sessionId) {
 	      '<td><span style="font-size:12px;color:var(--blue)">' + escHtml(brand) + '</span></td>' +
 	      '<td style="white-space:nowrap">' + escHtml(c.stage || '—') + '</td>' +
 	      '<td style="white-space:nowrap">' + editBtn + liveBtn + profileBtn + delBtn + '</td>' +
-	      '<td><button class="btn btn-sm" onclick="toggleMonitoring(' + c.id + ')" id="monBtn' + c.id + '">● 监控中</button></td>' +
+	      '<td><button class="btn btn-sm" onclick="toggleMonitoring(' + c.id + ')" id="monBtn' + c.id + '" + (c.monitoring !== false ? 'style="color:#52c41a;font-weight:bold"' : 'style="color:#bfbfbf"' ) + >+ (c.monitoring !== false ? '● <b>监控中</b>' : '● 已暂停') + </button></td>' +
 	      '</tr>';
 	  }).join('');
 	  el.innerHTML = '<div class="card"><div class="card-title">当前竞品（' + comps.length + ' 个）</div>' +
-	    '<div class="table-wrap"><table><thead><tr><th>账号名称</th><th>品牌</th><th>学段</th><th>监控</th><th>操作</th></tr></thead>' +
+	    '<div class="table-wrap"><table><thead><tr><th>账号名称</th><th>品牌</th><th>学段</th><th>操作</th><th>监控</th></tr></thead>' +
 	    '<tbody>' + rows + '</tbody></table></div></div>';
 	}
 
