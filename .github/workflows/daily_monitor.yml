@@ -185,10 +185,11 @@ jobs:
               # 注入 GitHub PAT 到 localStorage 初始化代码
               pat = os.environ.get('DASHBOARD_PAT', '')
               if pat:
-                  # 在 ghTokenInput 的 placeholder/value 处注入 PAT
-                  content = content.replace(
-                      'id=\"ghTokenInput\" type=\"password\" placeholder=\"',
-                      'id=\"ghTokenInput\" type=\"password\" value=\"' + pat + '\" placeholder=\"'
+                  # 替换任何已有的 token value（兼容旧版和新版）
+                  content = re.sub(
+                      r'id="ghTokenInput" type="password"[^>]*',
+                      'id="ghTokenInput" type="password" value="' + pat + '"',
+                      content
                   )
                   print(f'✅ GitHub PAT 已注入 (len={len(pat)})')
               board2.write_text(content, 'utf-8')
