@@ -713,27 +713,46 @@ function downloadSessionTxt(sessionId) {
 	function renderManage() {
 	  var el = document.getElementById("manageList");
 	  var comps = ALL.competitors;
-	  if (!comps.length) { el.innerHTML = '<div class="empty">暂无竞品，请添加</div>'; return; }
-	  var rows = comps.map(function(c) {
-	    var brand = c.brand || '—';
-	    var profileLink = c.profile_url || '';
-	    var liveLink = c.url || '';
-	    var editBtn = '<button class="btn btn-sm" onclick="editCompetitor(' + c.id + ')" style="margin-right:4px">编辑</button>';
-	    var delBtn = '<button class="btn btn-sm" onclick="deleteCompetitor(' + c.id + ')" style="color:var(--red);border-color:#ffccc7">删除</button>';
-	    var liveBtn = liveLink ? '<a href="' + escHtml(liveLink) + '" target="_blank" class="btn btn-sm" style="margin-right:4px">直播↗</a>' : '';
-	    var profileBtn = profileLink ? '<a href="' + escHtml(profileLink) + '" target="_blank" class="btn btn-sm" style="margin-right:4px">账号↗</a>' : '';
-	    return '<tr>' +
-	      '<td><b>' + escHtml(c.name) + '</b></td>' +
-	      '<td><span style="font-size:12px;color:var(--blue)">' + escHtml(brand) + '</span></td>' +
-	      '<td style="white-space:nowrap">' + escHtml(c.stage || '—') + '</td>' +
-	      '<td style="white-space:nowrap">' + editBtn + liveBtn + profileBtn + delBtn + '</td>' +
-	      '<td><button class="btn btn-sm" onclick="toggleMonitoring(' + c.id + ')" id="monBtn' + c.id + '" + (c.monitoring !== false ? 'style="color:#52c41a;font-weight:bold">' : 'style="color:#d9d9d9">') + (c.monitoring !== false ? '● 监控中' : '● 已暂停') + </button></td>' +
-	      '</tr>';
-	  }).join('');
-	  el.innerHTML = '<div class="card"><div class="card-title">当前竞品（' + comps.length + ' 个）</div>' +
-	    '<div class="table-wrap"><table><thead><tr><th>账号名称</th><th>品牌</th><th>学段</th><th>操作</th><th>监控</th></tr></thead>' +
-	    '<tbody>' + rows + '</tbody></table></div></div>';
+	  if (!comps.length) { el.innerHTML = '<div class="empty">no competitors, add one.</div>'; return; }
+	  var container = document.createElement("div"); container.className = "card";
+	  var title = document.createElement("div"); title.className = "card-title";
+	  title.textContent = "current competitors (" + comps.length + ")";
+	  container.appendChild(title);
+	  var wrapper = document.createElement("div"); wrapper.className = "table-wrap";
+	  var table = document.createElement("table");
+	  var thead = document.createElement("thead");
+	  var tr = document.createElement("tr");
+	  ["account", "brand", "stage", "operation", "monitor"].forEach(function(h) {
+	    var th = document.createElement("th"); th.textContent = h; tr.appendChild(th);
+	  });
+	  thead.appendChild(tr); table.appendChild(thead);
+	  var tbody = document.createElement("tbody");
+	  comps.forEach(function(c) {
+	    var row = document.createElement("tr");
+	    var td1 = document.createElement("td"); td1.innerHTML = "<b>" + escHtml(c.name) + "</b>"; row.appendChild(td1);
+	    var td2 = document.createElement("td"); td2.innerHTML = "<span style=font-size:12px;color:var(--blue)>" + escHtml(c.brand || "") + "</span>"; row.appendChild(td2);
+	    var td3 = document.createElement("td"); td3.style.cssText = "white-space:nowrap"; td3.textContent = c.stage || ""; row.appendChild(td3);
+	    var td4 = document.createElement("td"); td4.style.cssText = "white-space:nowrap";
+	    var editBtn = document.createElement("button"); editBtn.className = "btn btn-sm"; editBtn.style.cssText = "margin-right:4px";
+	    editBtn.textContent = "edit"; editBtn.onclick = function() { editCompetitor(c.id); }; td4.appendChild(editBtn);
+	    if (c.url) { var lb = document.createElement("a"); lb.href = escHtml(c.url); lb.target = "_blank"; lb.className = "btn btn-sm"; lb.style.cssText = "margin-right:4px"; lb.textContent = "live"; td4.appendChild(lb); }
+	    if (c.profile_url) { var pb = document.createElement("a"); pb.href = escHtml(c.profile_url); pb.target = "_blank"; pb.className = "btn btn-sm"; pb.style.cssText = "margin-right:4px"; pb.textContent = "account"; td4.appendChild(pb); }
+	    var delBtn = document.createElement("button"); delBtn.className = "btn btn-sm"; delBtn.style.cssText = "color:var(--red);border-color:#ffccc7";
+	    delBtn.textContent = "delete"; delBtn.onclick = function() { deleteCompetitor(c.id); }; td4.appendChild(delBtn);
+	    row.appendChild(td4);
+	    var td5 = document.createElement("td");
+	    var monBtn = document.createElement("button"); monBtn.className = "btn btn-sm";
+	    monBtn.onclick = function() { toggleMonitoring(c.id); };
+	    var isOn = c.monitoring !== false;
+	    monBtn.textContent = (isOn ? "\u25cf monitoring" : "\u25cb paused");
+	    monBtn.style.cssText = isOn ? "color:#52c41a;font-weight:bold" : "color:#d9d9d9";
+	    td5.appendChild(monBtn); row.appendChild(td5);
+	    tbody.appendChild(row);
+	  });
+	  table.appendChild(tbody); wrapper.appendChild(table); container.appendChild(wrapper);
+	  el.innerHTML = ""; el.appendChild(container);
 	}
+
 
 	function addCompetitor() {
 	  var name = document.getElementById("mName").value.trim();
