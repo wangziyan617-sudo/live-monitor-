@@ -716,13 +716,13 @@ function downloadSessionTxt(sessionId) {
 	  if (!comps.length) { el.innerHTML = '<div class="empty">no competitors, add one.</div>'; return; }
 	  var container = document.createElement("div"); container.className = "card";
 	  var title = document.createElement("div"); title.className = "card-title";
-	  title.textContent = "current competitors (" + comps.length + ")";
+	  title.textContent = "当前竞品（" + comps.length + " 个）";
 	  container.appendChild(title);
 	  var wrapper = document.createElement("div"); wrapper.className = "table-wrap";
 	  var table = document.createElement("table");
 	  var thead = document.createElement("thead");
 	  var tr = document.createElement("tr");
-	  ["account", "brand", "stage", "operation", "monitor"].forEach(function(h) {
+	  ["账号名称", "品牌", "学段", "操作", "监控"].forEach(function(h) {
 	    var th = document.createElement("th"); th.textContent = h; tr.appendChild(th);
 	  });
 	  thead.appendChild(tr); table.appendChild(thead);
@@ -734,17 +734,17 @@ function downloadSessionTxt(sessionId) {
 	    var td3 = document.createElement("td"); td3.style.cssText = "white-space:nowrap"; td3.textContent = c.stage || ""; row.appendChild(td3);
 	    var td4 = document.createElement("td"); td4.style.cssText = "white-space:nowrap";
 	    var editBtn = document.createElement("button"); editBtn.className = "btn btn-sm"; editBtn.style.cssText = "margin-right:4px";
-	    editBtn.textContent = "edit"; editBtn.onclick = function() { editCompetitor(c.id); }; td4.appendChild(editBtn);
-	    if (c.url) { var lb = document.createElement("a"); lb.href = escHtml(c.url); lb.target = "_blank"; lb.className = "btn btn-sm"; lb.style.cssText = "margin-right:4px"; lb.textContent = "live"; td4.appendChild(lb); }
-	    if (c.profile_url) { var pb = document.createElement("a"); pb.href = escHtml(c.profile_url); pb.target = "_blank"; pb.className = "btn btn-sm"; pb.style.cssText = "margin-right:4px"; pb.textContent = "account"; td4.appendChild(pb); }
+	    editBtn.textContent = "编辑"; editBtn.onclick = function() { editCompetitor(c.id); }; td4.appendChild(editBtn);
+	    if (c.url) { var lb = document.createElement("a"); lb.href = escHtml(c.url); lb.target = "_blank"; lb.className = "btn btn-sm"; lb.style.cssText = "margin-right:4px"; lb.textContent = "直播↗"; td4.appendChild(lb); }
+	    if (c.profile_url) { var pb = document.createElement("a"); pb.href = escHtml(c.profile_url); pb.target = "_blank"; pb.className = "btn btn-sm"; pb.style.cssText = "margin-right:4px"; pb.textContent = "账号↗"; td4.appendChild(pb); }
 	    var delBtn = document.createElement("button"); delBtn.className = "btn btn-sm"; delBtn.style.cssText = "color:var(--red);border-color:#ffccc7";
-	    delBtn.textContent = "delete"; delBtn.onclick = function() { deleteCompetitor(c.id); }; td4.appendChild(delBtn);
+	    delBtn.textContent = "删除"; delBtn.onclick = function() { deleteCompetitor(c.id); }; td4.appendChild(delBtn);
 	    row.appendChild(td4);
 	    var td5 = document.createElement("td");
 	    var monBtn = document.createElement("button"); monBtn.className = "btn btn-sm";
 	    monBtn.onclick = function() { toggleMonitoring(c.id); };
 	    var isOn = c.monitoring !== false;
-	    monBtn.textContent = (isOn ? "\u25cf monitoring" : "\u25cb paused");
+	    monBtn.textContent = (isOn ? "● 监控中" : "● 已暂停");
 	    monBtn.style.cssText = isOn ? "color:#52c41a;font-weight:bold" : "color:#d9d9d9";
 	    td5.appendChild(monBtn); row.appendChild(td5);
 	    tbody.appendChild(row);
