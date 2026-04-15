@@ -63,7 +63,7 @@ def export_competitors():
     ).fetchall()
     conn.close()
     return [{"id": r[0], "name": r[1], "douyin_id": r[2] or "", "url": r[3] or "", "profile_url": r[4] or "", "created_at": r[5],
-             "brand": r[6] or "", "stage": r[7] or ""} for r in rows]
+             "brand": r[6] or "", "stage": r[7] or "", "monitoring": True} for r in rows]
 
 
 def export_sessions():
@@ -302,6 +302,10 @@ def main():
         if cid in committed:
             c["brand"] = committed[cid].get("brand") or c.get("brand") or ""
             c["stage"] = committed[cid].get("stage") or c.get("stage") or ""
+            # monitoring 字段优先用 committed 的值，默认为 True
+            c["monitoring"] = committed[cid].get("monitoring", True) if committed[cid].get("monitoring") is not None else True
+        else:
+            c["monitoring"] = True
 
     sessions = export_sessions()
     analyses = export_analyses()
