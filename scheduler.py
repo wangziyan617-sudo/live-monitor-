@@ -7,6 +7,7 @@
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 from pathlib import Path
 from datetime import datetime
 
@@ -186,18 +187,30 @@ def run_daily_job(duration: int):
     db.close()
 
     if pending:
-        print(f"[scheduler] Phase 2: 并行转写+分析 {len(pending)} 场…")
-        with ThreadPoolExecutor(max_workers=len(pending)) as pool2:
-            futures2 = {
-                pool2.submit(transcribe_one, sid, name, vp): (sid, name)
-                for sid, name, vp in pending
-            }
-            for future in as_completed(futures2):
-                sid, name = futures2[future]
+        print(f"[scheduler] Phase 2: 分批转写+分析 {len(pending)} 场（每批2个，防止Groq限流）…")
+        import queue
+        pending_queue = queue.Queue()
+        for item in pending:
+            pending_queue.put(item)
+        def worker():
+            while True:
                 try:
-                    future.result()
+                    sid, name, vp = pending_queue.get_nowait()
+                except queue.Empty:
+                    break
+                try:
+                    transcribe_one(sid, name, vp)
                 except Exception as e:
                     print(f"[scheduler] session={sid}({name}) 异常: {e}")
+                finally:
+                    pending_queue.task_done()
+        workers = []
+        for _ in range(min(2, len(pending))):
+            t = threading.Thread(target=worker, daemon=True)
+            t.start()
+            workers.append(t)
+        for t in workers:
+            t.join()
     else:
         print("[scheduler] 所有场次已有分析，跳过 Phase 2")
 
