@@ -1252,10 +1252,39 @@ function renderRadar() {
     });
   });
 }
+function initCloudFilters() {
+  var brandSel = document.getElementById("fCloudBrand");
+  var dateSel = document.getElementById("fCloudDate");
+  if (!brandSel || !dateSel) return;
+  var brands = {};
+  ALL.sessions.forEach(function(s) { if (s.competitor) brands[s.competitor] = 1; });
+  Object.keys(brands).sort().forEach(function(b) {
+    var o = document.createElement("option"); o.value = b; o.textContent = b; brandSel.appendChild(o);
+  });
+  var dates = [...new Set(ALL.sessions.map(function(s){ return s.recorded_at.slice(0,10); }))].sort().reverse();
+  dates.forEach(function(d) {
+    var o = document.createElement("option"); o.value = d; o.textContent = d; dateSel.appendChild(o);
+  });
+}
+
 function renderCloud() {
-  var el = document.getElementById('cloudContent');
+  var el = document.getElementById("cloudContent");
   if (!el) return;
   if (!ALL.analyses.length) { el.innerHTML = '<div class=empty>暂无分析数据</div>'; return; }
+
+  var brand = document.getElementById("fCloudBrand") ? document.getElementById("fCloudBrand").value : "";
+  var date = document.getElementById("fCloudDate") ? document.getElementById("fCloudDate").value : "";
+  var sessionMap = {};
+  ALL.sessions.forEach(function(s) { sessionMap[s.id] = { competitor: s.competitor, date: s.recorded_at.slice(0,10) }; });
+  var filteredAnalyses = ALL.analyses.filter(function(a) {
+    var info = sessionMap[a.session_id];
+    if (!info) return false;
+    if (brand && info.competitor !== brand) return false;
+    if (date && info.date !== date) return false;
+    return true;
+  });
+  if (!filteredAnalyses.length) { el.innerHTML = '<div class=empty>筛选范围内暂无数据</div>'; return; }
+
   var wordCount = {};
   function add(w, n) { if (w && w.length >= 2) wordCount[w] = (wordCount[w] || 0) + (n || 1); }
 
@@ -1276,8 +1305,7 @@ function renderCloud() {
     });
   }
 
-  ALL.analyses.forEach(function(a) {
-    // 结构化字段（高权重，词义明确）
+  filteredAnalyses.forEach(function(a) {
     safeArr(a.key_products).forEach(function(p) {
       if (p.name) add(p.name, 5);
       safeArr(p.selling_points).forEach(function(sp) { if (sp) add(sp, 3); });
