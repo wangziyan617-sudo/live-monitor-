@@ -234,6 +234,7 @@ footer { text-align: center; padding: 24px; font-size: 12px; color: var(--text-3
           <label style="font-size:13px;color:var(--text-2);display:block;margin-bottom:4px">直播间URL</label>
           <input id="mLiveUrl" type="text" placeholder="https://live.douyin.com/数字（可选）" style="padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-width:300px">
         </div>
+<div style="margin-top:12px;padding:10px 12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;font-size:12px"><div style="color:#52c41a;margin-bottom:6px;font-weight:bold">✨ GitHub Token (repo权限)</div><div style="color:#666;margin-bottom:6px">忘发登录下次点击卿动提交</div><input id="ghTokenInput" type="password" placeholder="然营单授权 Token..." style="width:100%;padding:6px 8px;border:1px solid #d9d9d9;border-radius:4px;box-sizing:border-box;font-size:12px"></div>
         <button id="addBtn" class="btn pri" style="margin-top:18px" onclick="addCompetitor()">添加</button>
       </div>
       <input id="mEditingId" type="hidden">
@@ -301,7 +302,15 @@ async function init() {
     ]);
     ALL = { competitors: comp, sessions: sess, analyses: analy, transcripts: trans,
             compare: compData, trend, market };
-  } catch (e) {
+  
+  // 加载 GitHub Token
+  var savedToken = localStorage.getItem("ghPat") || "";
+  var ghInput = document.getElementById("ghTokenInput");
+  if (ghInput && savedToken) ghInput.value = savedToken;
+  if (ghInput) ghInput.addEventListener("input", function() {
+    localStorage.setItem("ghPat", ghInput.value);
+  });
+} catch (e) {
     errMsg = "数据加载失败: " + e.message;
     document.querySelectorAll("[id$='Content'], #compareContent, #sessionsContent, #trendContent, #marketContent")
       .forEach(el => { el.innerHTML = '<div class="err-panel">' + escHtml(errMsg) + '</div>'; });
@@ -780,14 +789,40 @@ function downloadSessionTxt(sessionId) {
     }
   });
   var fileContent = JSON.stringify(ALL.competitors, null, 2);
-  var blob = new Blob([fileContent], {type:"application/json"});
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "competitors.json";
-  a.click();
-  URL.revokeObjectURL(a.href);
   var msgEl = document.getElementById("mMsg");
-  if (msgEl) { msgEl.innerHTML = '<span style="color:#fa8c16">\u5df2\u5207\u6362\u72b6\u6001\uff0c\u8bf7\u4e0b\u8f7dJSON\u540e\u624b\u52a8\u63d0\u4ea4\u5230GitHub\u751f\u6548\u3002</span>'; }
+  var pat = (document.getElementById("ghTokenInput") || {}).value || localStorage.getItem("ghPat") || "";
+  if (!pat) {
+    var blob = new Blob([fileContent], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "competitors.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    if (msgEl) { msgEl.innerHTML = '<span style="color:#fa8c16">' + '已切换，请下载JSON后手动提交到GitHub（注：请输入Token后单向%E5%8D%95%E5%90%91' + '</span>'; }
+    return;
+  }
+  var repo = "wangziyan617-sudo/live-monitor-";
+  var fpath = "docs/data2/competitors.json";
+  var enc = btoa(unescape(encodeURIComponent(fileContent)));
+  if (msgEl) msgEl.innerHTML = '<span style="color:#1677ff">✗ 提交中...</span>';
+  fetch("https://api.github.com/repos/" + repo + "/contents/" + fpath + "?ref=main", {
+    headers: { "Authorization": "token " + pat }
+  }).then(function(r){ return r.json(); }).then(function(d){
+    var sha = d.sha || null;
+    var body2 = { message: "chore: update competitors monitoring state", content: enc, branch: "main" };
+    if (sha) body2.sha = sha;
+    return fetch("https://api.github.com/repos/" + repo + "/contents/" + fpath, {
+      method: "PUT",
+      headers: { "Authorization": "token " + pat, "Content-Type": "application/json" },
+      body: JSON.stringify(body2)
+    });
+  }).then(function(r2){ return r2.json(); }).then(function(d2){
+    if (msgEl) msgEl.innerHTML = d2.message
+      ? '<span style="color:#fa8c16">' + '已切换，请下载后手动提交到GitHub' + '</span>'
+      : '<span style="color:#52c41a">' + '✅ 已自动提交，下次监控将自动停生效' + '</span>';
+  }).catch(function(){
+    if (msgEl) msgEl.innerHTML = '<span style="color:#fa8c16">' + '已切换，请下载后手动提交到GitHub' + '</span>';
+  });
 }
 
 	function deleteCompetitor(id) {
