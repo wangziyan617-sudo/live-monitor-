@@ -166,6 +166,28 @@ jobs:
             python generate_static.py --group group2
           fi
 
+      - name: 刷新看板2的JS缓存版本号（防止浏览器缓存旧版）
+        run: |
+          python3 -c "
+          import hashlib, time
+          from pathlib import Path
+          board2 = Path('docs/board2/index.html')
+          if board2.exists():
+              ts = str(int(time.time()))
+              content = board2.read_text('utf-8')
+              # 替换 chart.js 的版本号为当前时间戳，强制刷新
+              import re
+              content = re.sub(
+                  r'(chart\.umd\.min\.js)(?:\?[^\\\"]*)?',
+                  r'\1?t=' + ts,
+                  content
+              )
+              board2.write_text(content, 'utf-8')
+              print(f'board2 版本号已刷新: ?t={ts}')
+          else:
+              print('board2/index.html 不存在，跳过')
+          "
+
       - name: 提交话术文档、数据库和静态页面到仓库
         if: always()
         run: |
