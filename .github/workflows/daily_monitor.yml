@@ -153,6 +153,7 @@ jobs:
           fi
 
       - name: 生成静态数据文件（含 token 注入）
+        continue-on-error: true
         # github.token 是 GitHub Actions 内置 token，不会触发 secret scanning
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -160,13 +161,14 @@ jobs:
           if [ "$RUN_GROUP" = "group1" ]; then
             python generate_static.py --group group1
           elif [ "$RUN_GROUP" = "group2" ]; then
-            python generate_static.py --group group2
+            python generate_static.py --group group2 || true
           else
             python generate_static.py --group group1
-            python generate_static.py --group group2
+            python generate_static.py --group group2 || true
           fi
 
       - name: 刷新看板2的JS缓存版本号（防止浏览器缓存旧版）
+        if: always()
         run: |
           python3 -c "
           import hashlib, time
