@@ -751,8 +751,31 @@ function downloadSessionTxt(sessionId) {
 	function toggleMonitoring(id) {
   var comp = ALL.competitors.find(function(c){ return c.id === id; });
   if (!comp) return;
+  // 切换状态
   comp.monitoring = (comp.monitoring === false);
-  saveCompetitor(comp.name, comp.brand||'', comp.stage||'', comp.profile_url||'', comp.url||'');
+  // 更新按钮样式和文字
+  var btn = document.getElementById('monBtn' + id);
+  if (btn) {
+    if (comp.monitoring === false) {
+      btn.textContent = '○ 已关闭';
+      btn.style.color = 'var(--text-3)';
+      btn.style.borderColor = '#d9d9d9';
+    } else {
+      btn.textContent = '● 监控中';
+      btn.style.color = 'var(--green)';
+      btn.style.borderColor = '#b7eb8f';
+    }
+  }
+  // 直接下载，不走 saveCompetitor（避免"已存在"报错）
+  var fileContent = JSON.stringify(ALL.competitors, null, 2);
+  var blob = new Blob([fileContent], {type:"application/json"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = 'competitors.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  var msgEl = document.getElementById("mMsg");
+  if (msgEl) msgEl.innerHTML = '<span style="color:var(--orange)">已切换状态，请下载文件后在GitHub上手动提交以保存。</span>';
 }
 
 function saveCompetitor(name, brand, stage, userUrl, liveUrl) {
