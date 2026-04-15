@@ -742,7 +742,7 @@ function downloadSessionTxt(sessionId) {
 	    row.appendChild(td4);
 	    var td5 = document.createElement("td");
 	    var monBtn = document.createElement("button"); monBtn.className = "btn btn-sm";
-	    monBtn.onclick = function() { toggleMonitoring(c.id); };
+	    monBtn.onclick = function() { toggleMonitoring(c.id); }; monBtn.setAttribute("data-compid", c.id);
 	    var isOn = c.monitoring !== false;
 	    monBtn.textContent = (isOn ? "● 监控中" : "● 已暂停");
 	    monBtn.style.cssText = isOn ? "color:#52c41a;font-weight:bold" : "color:#d9d9d9";
@@ -771,61 +771,26 @@ function downloadSessionTxt(sessionId) {
   var comp = ALL.competitors.find(function(c){ return c.id === id; });
   if (!comp) return;
   comp.monitoring = (comp.monitoring === false || comp.monitoring === undefined);
+  // 立即更新按钮文字和颜色
+  var buttons = document.querySelectorAll("button[data-compid]");
+  buttons.forEach(function(b) {
+    if (String(b.getAttribute("data-compid")) === String(id)) {
+      var isOn = comp.monitoring !== false;
+      b.textContent = isOn ? '● 监控中' : '● 已暂停';
+      b.style.cssText = isOn ? "color:#52c41a;font-weight:bold" : "color:#d9d9d9";
+    }
+  });
+  // 下载 JSON
   var fileContent = JSON.stringify(ALL.competitors, null, 2);
-  var blob = new Blob([fileContent], {type:'application/json'});
-  var a = document.createElement('a');
+  var blob = new Blob([fileContent], {type:"application/json"});
+  var a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = 'competitors.json';
+  a.download = "competitors.json";
   a.click();
   URL.revokeObjectURL(a.href);
-  var msgEl = document.getElementById('mMsg');
-  if (msgEl) {
-    msgEl.innerHTML = '<span style="color:#fa8c16">已切换状态，请在GitHub上手动提交 competitors.json 生效。</span>';
-  }
+  var msgEl = document.getElementById("mMsg");
+  if (msgEl) { msgEl.innerHTML = '<span style="color:#fa8c16">' + '已切换状态，请下载JSON后手动提交到GitHub生效。' + '</span>'; }
 }
-
-function saveCompetitor(name, brand, stage, userUrl, liveUrl) {
-	  var editingId = parseInt(document.getElementById("mEditingId").value) || null;
-	  var msg = document.getElementById("mMsg");
-	  var comps = ALL.competitors.slice();
-	  var isEditing = !!editingId;
-	  if (isEditing) {
-	    // 更新现有
-	    comps = comps.map(function(c) {
-	      if (c.id === editingId) {
-	        c.name = name; c.brand = brand; c.stage = stage; c.profile_url = userUrl; c.url = liveUrl; c.monitoring = (comp.monitoring !== false);
-	      }
-	      return c;
-	    });
-	  } else {
-	    if (comps.some(function(c) { return c.name === name; })) {
-	      msg.innerHTML = '<span style="color:var(--orange)">该账号已存在</span>'; return;
-	    }
-	    var maxId = comps.reduce(function(m, c) { return Math.max(m, c.id || 0); }, 0);
-	    comps.push({ id: maxId + 1, name: name, brand: brand, stage: stage || "", profile_url: userUrl || '', url: liveUrl, monitoring: true });;;
-	  }
-	  ALL.competitors = comps;
-	  var fileContent = JSON.stringify(comps, null, 2);
-	  commitFile('docs/data2/competitors.json', fileContent, function(ok) {
-	    var mEl = document.getElementById("mMsg");
-	    if (ok) {
-	      mEl.innerHTML = '<span style="color:var(--green)">✅ ' + (isEditing ? '已更新' : '已添加') + '！下次CI将自动采集。</span>';
-	      document.getElementById("mName").value = '';
-	      document.getElementById("mUrl").value = '';
-	      document.getElementById("mLiveUrl").value = '';
-	      renderManage();
-	    } else {
-	      // GitHub Pages 无法直接写仓库，引导用户手动编辑
-	      var blob = new Blob([fileContent], {type:"application/json"});
-	      var a = document.createElement("a");
-	      a.href = URL.createObjectURL(blob);
-	      a.download = 'competitors.json';
-	      a.click();
-	      URL.revokeObjectURL(a.href);
-	      mEl.innerHTML = '<span style="color:var(--orange)">⚠️ GitHub Pages 无写入权限。请下载 JSON，复制到 <b>docs/data/competitors.json</b>，然后 GitHub 上手动提交。</span>';
-	    }
-	  });
-	}
 
 	function deleteCompetitor(id) {
 	  if (!confirm('确定删除该竞品？')) return;
