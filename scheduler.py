@@ -29,6 +29,39 @@ else:
     from config.settings import COMPETITORS, SCHEDULE_HOUR, SCHEDULE_MINUTE, RECORD_DURATION_SECONDS
     from config.settings import DB_PATH as _DB_PATH, RECORD_OUTPUT_DIR as _RECORD_OUTPUT_DIR, ARCHIVE_DIR as _ARCHIVE_DIR
 
+# 读取 docs/data2/competitors.json 的 monitoring 字段，过滤 COMPETITORS
+# group1 用 docs/data/competitors.json，group2 用 docs/data2/competitors.json
+def _load_monitoring_list(group):
+    """读取看板管理列表，过滤掉 monitoring=false 的账号"""
+    _ROOT = Path(__file__).parent
+    if group == "group2":
+        path = _ROOT / "docs" / "data2" / "competitors.json"
+    else:
+        path = _ROOT / "docs" / "data" / "competitors.json"
+    if not path.exists():
+        return  # 没有文件，沿用 config 里的列表
+    try:
+        import json as _json
+        data = _json.loads(path.read_text(encoding="utf-8"))
+        # 建立 name -> monitoring 映射
+        monitoring_map = {}
+        for c in data:
+            name = c.get("name", "")
+            monitoring = c.get("monitoring", True)
+            if not monitoring:
+                monitoring_map[name] = False
+        # 过滤 COMPETITORS
+        global COMPETITORS
+        before = len(COMPETITORS)
+        COMPETITORS = [c for c in COMPETITORS if monitoring_map.get(c["name"], True) != False]
+        after = len(COMPETITORS)
+        if after < before:
+            print(f"[scheduler] 竞品管理联动：已排除 {before - after} 个已关闭监控的账号（{group}）")
+    except Exception:
+        pass
+
+_load_monitoring_list(_group)
+
 # 在 import storage.db 之前切换数据库路径，确保所有函数拿到正确的 SessionLocal
 import storage.db as _db_module
 from sqlalchemy import create_engine
