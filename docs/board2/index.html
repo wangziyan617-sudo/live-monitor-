@@ -770,8 +770,7 @@ function downloadSessionTxt(sessionId) {
 	function toggleMonitoring(id) {
   var comp = ALL.competitors.find(function(c){ return c.id === id; });
   if (!comp) return;
-  comp.monitoring = (comp.monitoring === false || comp.monitoring === undefined);
-  // 立即更新按钮文字和颜色
+  comp.monitoring = (comp.monitoring === false);
   var buttons = document.querySelectorAll("button[data-compid]");
   buttons.forEach(function(b) {
     if (String(b.getAttribute("data-compid")) === String(id)) {
@@ -780,7 +779,6 @@ function downloadSessionTxt(sessionId) {
       b.style.cssText = isOn ? "color:#52c41a;font-weight:bold" : "color:#d9d9d9";
     }
   });
-  // 下载 JSON
   var fileContent = JSON.stringify(ALL.competitors, null, 2);
   var blob = new Blob([fileContent], {type:"application/json"});
   var a = document.createElement("a");
@@ -789,7 +787,7 @@ function downloadSessionTxt(sessionId) {
   a.click();
   URL.revokeObjectURL(a.href);
   var msgEl = document.getElementById("mMsg");
-  if (msgEl) { msgEl.innerHTML = '<span style="color:#fa8c16">' + '已切换状态，请下载JSON后手动提交到GitHub生效。' + '</span>'; }
+  if (msgEl) { msgEl.innerHTML = '<span style="color:#fa8c16">\u5df2\u5207\u6362\u72b6\u6001\uff0c\u8bf7\u4e0b\u8f7dJSON\u540e\u624b\u52a8\u63d0\u4ea4\u5230GitHub\u751f\u6548\u3002</span>'; }
 }
 
 	function deleteCompetitor(id) {
