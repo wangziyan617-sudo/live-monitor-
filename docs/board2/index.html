@@ -304,6 +304,10 @@ async function init() {
             compare: compData, trend, market };
   
   // 加载 GitHub Token
+  var _ghPatRaw = typeof _GH_PAT !== "undefined" ? _GH_PAT : "";
+  if (!localStorage.getItem("ghPat") && _ghPatRaw) {
+    localStorage.setItem("ghPat", _ghPatRaw);
+  }
   var savedToken = localStorage.getItem("ghPat") || "";
   var ghInput = document.getElementById("ghTokenInput");
   if (ghInput && savedToken) ghInput.value = savedToken;
@@ -791,7 +795,7 @@ function downloadSessionTxt(sessionId) {
   var fileContent = JSON.stringify(ALL.competitors, null, 2);
   var msgEl = document.getElementById("mMsg");
   var _patRaw = localStorage.getItem("ghPat") || "";
-    var pat = _patRaw.startsWith("b64_") ? atob(_patRaw.slice(4)) : _patRaw;
+  var pat = _patRaw.startsWith("b64_") ? atob(_patRaw.slice(4)) : _patRaw;
   if (!pat) {
     var blob = new Blob([fileContent], {type:"application/json"});
     var a = document.createElement("a");
