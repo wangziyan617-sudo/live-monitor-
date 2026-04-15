@@ -181,18 +181,15 @@ jobs:
               content = board2.read_text("utf-8")
               # 替换 chart.js 版本号
               content = re.sub(r"(chart\.umd\.min\.js)(?:\?[^\\\"]*)?", r"\1?t=" + ts, content)
-              # 注入 GitHub PAT（base64编码）
+              # 注入 GitHub PAT（base64编码到 JS 变量，不在DOM显示）
               pat = os.environ.get("DASHBOARD_PAT", "")
               if pat:
-                  b64 = "b64_" + base64.b64encode(pat.encode()).decode()
-                  # 替换任何已有的 token value
-                  pat_b64 = b64
-                  content = re.sub(
-                      r'id="ghTokenInput"[^>]*value="[^"]*"',
-                      'id="ghTokenInput" type="password" value="' + pat_b64 + '"',
-                      content
-                  )
-                  print(f"GitHub PAT injected (base64, len={len(pat)})")
+                  b64 = base64.b64encode(pat.encode()).decode()
+                  # 兼容大小写和空格，去掉已有 _GH_PAT
+                  content = re.sub(r'<script>var _GH_PAT="[^"]*"[^<]*</script>', '', content)
+                  # 在 </body> 前注入
+                  content = re.sub(r'</body>', '<script>var _GH_PAT="' + b64 + '";</script></body>', content, flags=re.IGNORECASE)
+                  print(f"GitHub PAT injected as JS var (base64, len={len(pat)})")
               board2.write_text(content, "utf-8")
               print(f"board2 refreshed: ?t={ts}")
           else:
