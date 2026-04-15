@@ -1003,7 +1003,9 @@ function renderTranscript(text) {
   lines.forEach(function(line) {
     var m = line.match(/^\[(\d{2}:\d{2})\s*-->\s*(\d{2}:\d{2})\]\s*(.+)/);
     if (m) {
-      entries.push({ start: m[1], end: m[2], content: m[3].trim() });
+      var s = m[1], e = m[2];
+      if (!/^\d{2}:\d{2}$/.test(s) || !/^\d{2}:\d{2}$/.test(e)) return;
+      entries.push({ start: s, end: e, content: m[3].trim() });
     }
   });
   if (entries.length === 0) {
