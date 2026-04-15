@@ -27,6 +27,16 @@ if _group == "group2":
 else:
     from config.settings import COMPETITORS, SCHEDULE_HOUR, SCHEDULE_MINUTE, RECORD_DURATION_SECONDS
     from config.settings import DB_PATH as _DB_PATH, RECORD_OUTPUT_DIR as _RECORD_OUTPUT_DIR, ARCHIVE_DIR as _ARCHIVE_DIR
+
+# 在 import storage.db 之前切换数据库路径，确保所有函数拿到正确的 SessionLocal
+import storage.db as _db_module
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+_db_module.DB_PATH = str(_DB_PATH)
+_db_module.DATABASE_URL = f"sqlite:///{_DB_PATH}"
+_db_module.engine = create_engine(_db_module.DATABASE_URL, connect_args={"check_same_thread": False})
+_db_module.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_db_module.engine)
+
 from crawler.hls_recorder import fetch_m3u8_url, record_m3u8
 from crawler.recorder import record_live_room
 from transcriber.whisper_transcribe import transcribe_video
@@ -195,12 +205,6 @@ def run_daily_job(duration: int):
 
 
 if __name__ == "__main__":
-    # 根据 group 切换数据库路径
-    import storage.db as _db_module
-    _db_module.DB_PATH = str(_DB_PATH)
-    _db_module.DATABASE_URL = f"sqlite:///{_DB_PATH}"
-    _db_module.engine = _db_module.create_engine(_db_module.DATABASE_URL, connect_args={"check_same_thread": False})
-    _db_module.SessionLocal = _db_module.sessionmaker(autocommit=False, autoflush=False, bind=_db_module.engine)
     init_db()
 
     # --phase2-only: 跳过录制，只跑 Phase2（转写+分析已有视频）
