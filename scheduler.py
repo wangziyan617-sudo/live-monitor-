@@ -252,16 +252,30 @@ if __name__ == "__main__":
                         print(f"[scheduler] session={sid}({name}) 异常: {e}")
 
         if tasks_transcribe:
-            print(f"[scheduler] Phase2: 转写+分析 {len(tasks_transcribe)} 个已录制会话…")
-            with ThreadPoolExecutor(max_workers=len(tasks_transcribe)) as pool:
-                futures = {pool.submit(transcribe_one, sid, name, vp, False): (sid, name)
-                           for sid, name, vp in tasks_transcribe}
-                for future in as_completed(futures):
-                    sid, name = futures[future]
+            print(f"[scheduler] Phase2: 分批转写+分析 {len(tasks_transcribe)} 个已录制会话（每批2个，防止Groq限流）…")
+            import queue
+            q = queue.Queue()
+            for item in tasks_transcribe:
+                q.put(item)
+            def worker():
+                while True:
                     try:
-                        future.result()
+                        sid, name, vp = q.get_nowait()
+                    except queue.Empty:
+                        break
+                    try:
+                        transcribe_one(sid, name, vp, False)
                     except Exception as e:
                         print(f"[scheduler] session={sid}({name}) 异常: {e}")
+                    finally:
+                        q.task_done()
+            workers = []
+            for _ in range(min(2, len(tasks_transcribe))):
+                t = threading.Thread(target=worker, daemon=True)
+                t.start()
+                workers.append(t)
+            for t in workers:
+                t.join()
 
         if not tasks_analyze and not tasks_transcribe:
             print("[scheduler] 没有需要处理的任务，跳过 Phase2")
