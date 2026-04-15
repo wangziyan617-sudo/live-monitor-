@@ -170,7 +170,7 @@ jobs:
       - name: 刷新看板2的JS缓存版本号（防止浏览器缓存旧版）
         if: always()
         env:
-          DASHBOARD_PAT: ${{ secrets.DASHBOARD }}
+          DASHBOARD_PAT: ${{ secrets.DASHBOARD_TOKEN }}
         run: |
           python3 -c "
           import hashlib, time
