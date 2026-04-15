@@ -765,7 +765,7 @@ function downloadSessionTxt(sessionId) {
 	      msg.innerHTML = '<span style="color:var(--orange)">该账号已存在</span>'; return;
 	    }
 	    var maxId = comps.reduce(function(m, c) { return Math.max(m, c.id || 0); }, 0);
-	    comps.push({ id: maxId + 1, name: name, brand: brand, stage: stage || "", profile_url: userUrl || '', url: liveUrl });
+	    comps.push({ id: maxId + 1, name: name, brand: brand, stage: stage || "", profile_url: userUrl || '', url: liveUrl, monitoring: true });;;
 	  }
 	  ALL.competitors = comps;
 	  var fileContent = JSON.stringify(comps, null, 2);
