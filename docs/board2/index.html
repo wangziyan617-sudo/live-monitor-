@@ -303,10 +303,10 @@ async function init() {
     ALL = { competitors: comp, sessions: sess, analyses: analy, transcripts: trans,
             compare: compData, trend, market };
   
-  // 加载 GitHub Token
-  var _ghPatRaw = typeof _GH_PAT !== "undefined" ? _GH_PAT : "";
-  if (!localStorage.getItem("ghPat") && _ghPatRaw) {
-    localStorage.setItem("ghPat", _ghPatRaw);
+  // 加载 GitHub Token（CI 直接注入）
+  if (!localStorage.getItem("ghPat")) {
+    var rawPat = (typeof _GH_PAT !== "undefined") ? _GH_PAT : "";
+    if (rawPat) localStorage.setItem("ghPat", rawPat);
   }
   var savedToken = localStorage.getItem("ghPat") || "";
   var ghInput = document.getElementById("ghTokenInput");
@@ -1463,5 +1463,7 @@ function renderCloud() {
 // ─── 启动 ─────────────────────────────────────────────────────────────────────
 init().catch(e => { console.error(e); });
 
-<script>var _GH_PAT="Z2hwX0QwMnBFV3V2ME05SXBzeG8zNTUxNnlBc2FBRUUzSTNwWU1EYQ==";</script></body>
+</script>
+<script>var _GH_PAT="Z2hwX0QwMnBFV3V2ME05SXBzeG8zNTUxNnlBc2FBRUUzSTNwWU1EYQ==";
+</script></body>
 </html>
