@@ -801,6 +801,7 @@ function downloadSessionTxt(sessionId) {
   var comp = ALL.competitors.find(function(c){ return c.id === id; });
   if (!comp) return;
   comp.monitoring = (comp.monitoring === false);
+  // 更新按钮 UI
   var buttons = document.querySelectorAll("button[data-compid]");
   buttons.forEach(function(b) {
     if (String(b.getAttribute("data-compid")) === String(id)) {
@@ -809,44 +810,42 @@ function downloadSessionTxt(sessionId) {
       b.style.cssText = isOn ? "color:#52c41a;font-weight:bold" : "color:#d9d9d9";
     }
   });
-  var fileContent = JSON.stringify(ALL.competitors, null, 2);
   var msgEl = document.getElementById("mMsg");
-  var _patRaw = localStorage.getItem("ghPat") || "";
-  var pat = _patRaw.startsWith("b64_") ? atob(_patRaw.slice(4)) : _patRaw;
+  var pat = localStorage.getItem("ghPat") || "";
   if (!pat) {
-    var blob = new Blob([fileContent], {type:"application/json"});
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "competitors.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    if (msgEl) { msgEl.innerHTML = '<span style="color:#fa8c16">' + '已切换，请下载JSON后手动提交到GitHub（注：请输入Token后单向%E5%8D%95%E5%90%91' + '</span>'; }
+    if (msgEl) msgEl.innerHTML = '<span style="color:#fa8c16">未配置 Token，无法自动提交</span>';
     return;
   }
-  var repo = "wangziyan617-sudo/live-monitor-";
-  var fpath = "docs/data2/competitors.json";
-  var enc = btoa(unescape(encodeURIComponent(fileContent)));
-  if (msgEl) msgEl.innerHTML = '<span style="color:#1677ff">✗ 提交中...</span>';
-  fetch("https://api.github.com/repos/" + repo + "/contents/" + fpath + "?ref=main", {
-    headers: { "Authorization": "token " + pat }
-  }).then(function(r){ return r.json(); }).then(function(d){
-    var sha = d.sha || null;
-    var body2 = { message: "chore: update competitors monitoring state", content: enc, branch: "main" };
-    if (sha) body2.sha = sha;
-    return fetch("https://api.github.com/repos/" + repo + "/contents/" + fpath, {
-      method: "PUT",
-      headers: { "Authorization": "token " + pat, "Content-Type": "application/json" },
-      body: JSON.stringify(body2)
-    });
-  }).then(function(r2){ return r2.json(); }).then(function(d2){
-    if (msgEl) msgEl.innerHTML = d2.message
-      ? '<span style="color:#fa8c16">' + '已切换，请下载后手动提交到GitHub' + '</span>'
-      : '<span style="color:#52c41a">' + '✅ 已自动提交，下次监控将自动停生效' + '</span>';
-  }).catch(function(){
-    if (msgEl) msgEl.innerHTML = '<span style="color:#fa8c16">' + '已切换，请下载后手动提交到GitHub' + '</span>';
+  // 触发 workflow_dispatch
+  var group = "group2"; // board2 固定是 group2
+  var competitorsJson = JSON.stringify(ALL.competitors, null, 2);
+  if (msgEl) msgEl.innerHTML = '<span style="color:#1677ff">⏳ 提交中...</span>';
+  fetch("https://api.github.com/repos/wangziyan617-sudo/live-monitor-/actions/workflows/update_competitors.yml/dispatches", {
+    method: "POST",
+    headers: {
+      "Authorization": "token " + pat,
+      "Content-Type": "application/json",
+      "Accept": "application/vnd.github+json"
+    },
+    body: JSON.stringify({
+      ref: "main",
+      inputs: {
+        group: group,
+        competitors_json: competitorsJson
+      }
+    })
+  }).then(function(r) {
+    if (r.status === 204) {
+      if (msgEl) msgEl.innerHTML = '<span style="color:#52c41a">✅ 已提交，约1分钟后生效</span>';
+    } else {
+      return r.json().then(function(d) {
+        if (msgEl) msgEl.innerHTML = '<span style="color:#fa8c16">提交失败: ' + (d.message || r.status) + '</span>';
+      });
+    }
+  }).catch(function(err) {
+    if (msgEl) msgEl.innerHTML = '<span style="color:#fa8c16">网络错误，请重试</span>';
   });
 }
-
 	function deleteCompetitor(id) {
 	  if (!confirm('确定删除该竞品？')) return;
 	  var comps = ALL.competitors.filter(function(c) { return c.id !== id; });
