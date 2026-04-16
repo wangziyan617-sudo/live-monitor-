@@ -1,0 +1,47 @@
+name: 更新竞品监控状态
+
+on:
+  workflow_dispatch:
+    inputs:
+      group:
+        description: '竞品组：group1 或 group2'
+        required: true
+        default: 'group2'
+      competitors_json:
+        description: 'competitors.json 完整内容（JSON 字符串）'
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 写入 competitors.json
+        run: |
+          GROUP="${{ github.event.inputs.group }}"
+          if [ "$GROUP" = "group2" ]; then
+            FILE="docs/data2/competitors.json"
+          else
+            FILE="docs/data/competitors.json"
+          fi
+
+          echo '${{ github.event.inputs.competitors_json }}' > "$FILE"
+
+          git config user.name "live-monitor-bot"
+          git config user.email "bot@live-monitor"
+          git add "$FILE"
+
+          if git diff --staged --quiet; then
+            echo "没有变化，跳过提交"
+          else
+            git commit -m "chore(board2): update competitors monitoring state"
+            git push
+            echo "✅ 已提交 $FILE"
+          fi
