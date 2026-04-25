@@ -1,56 +1,29 @@
 [
   {
-    "id": 24,
-    "competitor_id": 1,
-    "competitor": "一本官方旗舰店小学",
-    "recorded_at": "2026-04-24 23:54:22.114300",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本官方旗舰店小学_20260424_2338.mp4",
-    "duration": 311.08,
-    "status": "recorded"
-  },
-  {
-    "id": 23,
-    "competitor_id": 5,
-    "competitor": "一本小学好物推荐",
-    "recorded_at": "2026-04-24 23:53:56.383419",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好物推荐_20260424_2338.mp4",
-    "duration": 900.074,
-    "status": "recorded"
-  },
-  {
-    "id": 22,
-    "competitor_id": 6,
-    "competitor": "一本图书官方旗舰店小学",
-    "recorded_at": "2026-04-24 23:53:55.837516",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本图书官方旗舰店小学_20260424_2338.mp4",
-    "duration": 900.09,
-    "status": "analyzed"
-  },
-  {
     "id": 21,
-    "competitor_id": 3,
-    "competitor": "一本官方旗舰店",
-    "recorded_at": "2026-04-24 23:53:55.752013",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本官方旗舰店_20260424_2338.mp4",
-    "duration": 900.073,
+    "competitor_id": 4,
+    "competitor": "一本小学好书严选",
+    "recorded_at": "2026-04-25 23:52:36.238998",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书严选_20260425_2337.mp4",
+    "duration": 311.231,
     "status": "analyzed"
   },
   {
     "id": 20,
-    "competitor_id": 4,
-    "competitor": "一本小学好书严选",
-    "recorded_at": "2026-04-24 23:53:53.257254",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书严选_20260424_2338.mp4",
-    "duration": 900.091,
+    "competitor_id": 5,
+    "competitor": "一本小学好物推荐",
+    "recorded_at": "2026-04-25 23:52:01.846808",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好物推荐_20260425_2337.mp4",
+    "duration": 900.093,
     "status": "analyzed"
   },
   {
     "id": 19,
-    "competitor_id": 2,
-    "competitor": "一本小学好书推荐",
-    "recorded_at": "2026-04-24 23:53:51.040174",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书推荐_20260424_2338.mp4",
-    "duration": 900.101,
+    "competitor_id": 3,
+    "competitor": "一本官方旗舰店",
+    "recorded_at": "2026-04-25 23:52:00.958703",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本官方旗舰店_20260425_2337.mp4",
+    "duration": 900.107,
     "status": "analyzed"
   },
   {
