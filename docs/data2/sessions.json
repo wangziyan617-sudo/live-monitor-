@@ -1,47 +1,47 @@
 [
   {
     "id": 5,
-    "competitor_id": 6,
-    "competitor": "张文晖-满分数学张老师",
-    "recorded_at": "2026-06-28 00:15:49.201603",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260628_0000.mp4",
-    "duration": 900.091,
+    "competitor_id": 2,
+    "competitor": "叫叫-21天阅读习惯养成",
+    "recorded_at": "2026-06-29 00:22:20.911050",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260629_0007.mp4",
+    "duration": 900.073,
     "status": "analyzed"
   },
   {
     "id": 4,
-    "competitor_id": 13,
-    "competitor": "猿辅导官方-剑桥双优",
-    "recorded_at": "2026-06-28 00:15:47.398664",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导官方-剑桥双优_20260628_0000.mp4",
-    "duration": 900.08,
+    "competitor_id": 11,
+    "competitor": "张文晖-满分数学张老师",
+    "recorded_at": "2026-06-29 00:22:20.138173",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260629_0007.mp4",
+    "duration": 900.074,
     "status": "analyzed"
   },
   {
     "id": 3,
     "competitor_id": 12,
-    "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-06-28 00:15:46.250196",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260628_0000.mp4",
-    "duration": 900.134,
+    "competitor": "猿辅导官方-剑桥双优",
+    "recorded_at": "2026-06-29 00:22:19.658799",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导官方-剑桥双优_20260629_0007.mp4",
+    "duration": 900.073,
     "status": "analyzed"
   },
   {
     "id": 2,
-    "competitor_id": 14,
+    "competitor_id": 1,
     "competitor": "豆神教育旗舰店",
-    "recorded_at": "2026-06-28 00:15:45.664645",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260628_0000.mp4",
-    "duration": 900.074,
+    "recorded_at": "2026-06-29 00:22:15.903396",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260629_0007.mp4",
+    "duration": 900.102,
     "status": "analyzed"
   },
   {
     "id": 1,
     "competitor_id": 3,
-    "competitor": "叫叫-21天阅读习惯养成",
-    "recorded_at": "2026-06-28 00:15:45.664278",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260628_0000.mp4",
-    "duration": 900.106,
+    "competitor": "叫叫阅读-21天阅读进阶",
+    "recorded_at": "2026-06-29 00:22:12.539907",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260629_0007.mp4",
+    "duration": 900.121,
     "status": "analyzed"
   }
 ]
