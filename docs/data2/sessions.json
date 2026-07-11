@@ -1,38 +1,47 @@
 [
   {
-    "id": 4,
-    "competitor_id": 9,
+    "id": 5,
+    "competitor_id": 12,
     "competitor": "小鹿素养-小学英语官旗店",
-    "recorded_at": "2026-07-10 00:18:00.888766",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养-小学英语官旗店_20260710_0003.mp4",
-    "duration": 900.106,
+    "recorded_at": "2026-07-11 00:11:56.482219",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养-小学英语官旗店_20260710_2356.mp4",
+    "duration": 310.8,
+    "status": "analyzed"
+  },
+  {
+    "id": 4,
+    "competitor_id": 7,
+    "competitor": "小鹿素养小学英语大通关",
+    "recorded_at": "2026-07-11 00:11:35.726086",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养小学英语大通关_20260710_2356.mp4",
+    "duration": 900.073,
     "status": "analyzed"
   },
   {
     "id": 3,
-    "competitor_id": 4,
-    "competitor": "张文晖-满分数学张老师",
-    "recorded_at": "2026-07-10 00:17:56.568268",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260710_0002.mp4",
-    "duration": 900.08,
+    "competitor_id": 14,
+    "competitor": "叫叫-21天阅读习惯养成",
+    "recorded_at": "2026-07-11 00:11:33.835151",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260710_2356.mp4",
+    "duration": 900.073,
     "status": "analyzed"
   },
   {
     "id": 2,
     "competitor_id": 3,
     "competitor": "豆神教育旗舰店",
-    "recorded_at": "2026-07-10 00:17:49.464353",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260710_0002.mp4",
-    "duration": 900.103,
+    "recorded_at": "2026-07-11 00:11:29.872443",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260710_2356.mp4",
+    "duration": 900.097,
     "status": "analyzed"
   },
   {
     "id": 1,
-    "competitor_id": 1,
+    "competitor_id": 2,
     "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-07-10 00:17:47.014974",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260710_0002.mp4",
-    "duration": 900.088,
+    "recorded_at": "2026-07-11 00:11:25.377730",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260710_2356.mp4",
+    "duration": 900.107,
     "status": "analyzed"
   }
 ]
