@@ -1,47 +1,47 @@
 [
   {
     "id": 5,
-    "competitor_id": 15,
-    "competitor": "小鹿大阅读S版-千帆",
-    "recorded_at": "2026-07-19 00:07:09.019431",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读S版-千帆_20260718_2352.mp4",
+    "competitor_id": 2,
+    "competitor": "豆神教育旗舰店",
+    "recorded_at": "2026-07-20 00:10:21.881365",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260719_2355.mp4",
     "duration": 900.08,
     "status": "analyzed"
   },
   {
     "id": 4,
-    "competitor_id": 7,
-    "competitor": "小鹿素养小学英语大通关",
-    "recorded_at": "2026-07-19 00:07:08.475711",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养小学英语大通关_20260718_2352.mp4",
-    "duration": 900.1,
-    "status": "analyzed"
-  },
-  {
-    "id": 3,
-    "competitor_id": 3,
-    "competitor": "豆神教育旗舰店",
-    "recorded_at": "2026-07-19 00:07:07.947760",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260718_2352.mp4",
+    "competitor_id": 6,
+    "competitor": "小鹿大阅读S版-千帆",
+    "recorded_at": "2026-07-20 00:10:19.485266",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读S版-千帆_20260719_2355.mp4",
     "duration": 900.073,
     "status": "analyzed"
   },
   {
+    "id": 3,
+    "competitor_id": 15,
+    "competitor": "小鹿素养小学英语大通关",
+    "recorded_at": "2026-07-20 00:10:19.396116",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养小学英语大通关_20260719_2355.mp4",
+    "duration": 900.066,
+    "status": "analyzed"
+  },
+  {
     "id": 2,
-    "competitor_id": 12,
+    "competitor_id": 4,
     "competitor": "叫叫-21天阅读习惯养成",
-    "recorded_at": "2026-07-19 00:07:06.752919",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260718_2352.mp4",
-    "duration": 900.04,
+    "recorded_at": "2026-07-20 00:10:18.036700",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260719_2355.mp4",
+    "duration": 900.106,
     "status": "analyzed"
   },
   {
     "id": 1,
-    "competitor_id": 2,
-    "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-07-19 00:07:01.931742",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260718_2352.mp4",
-    "duration": 900.056,
+    "competitor_id": 7,
+    "competitor": "猿辅导当堂满分大语文",
+    "recorded_at": "2026-07-20 00:00:38.009631",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20260719_2355.mp4",
+    "duration": 302.307,
     "status": "analyzed"
   }
 ]
