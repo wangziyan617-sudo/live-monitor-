@@ -1,38 +1,137 @@
 [
   {
-    "id": 4,
+    "id": 15,
+    "competitor_id": 8,
+    "competitor": "清北老师数学名师堂",
+    "recorded_at": "2026-08-03 00:12:51.349266",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/清北老师数学名师堂_20260802_2357.mp4",
+    "duration": 311.053,
+    "status": "analyzed"
+  },
+  {
+    "id": 14,
+    "competitor_id": 10,
+    "competitor": "清华猴神侯子疼",
+    "recorded_at": "2026-08-03 00:12:49.146067",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/清华猴神侯子疼_20260802_2357.mp4",
+    "duration": 311.8,
+    "status": "analyzed"
+  },
+  {
+    "id": 13,
+    "competitor_id": 12,
+    "competitor": "小鹿素养-小学英语官旗店",
+    "recorded_at": "2026-08-03 00:12:42.074981",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养-小学英语官旗店_20260802_2357.mp4",
+    "duration": 311.0,
+    "status": "analyzed"
+  },
+  {
+    "id": 12,
+    "competitor_id": 11,
+    "competitor": "张文晖-满分数学张老师",
+    "recorded_at": "2026-08-03 00:12:40.452545",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260802_2357.mp4",
+    "duration": 311.683,
+    "status": "analyzed"
+  },
+  {
+    "id": 11,
+    "competitor_id": 9,
+    "competitor": "跟清北名师学全年数学",
+    "recorded_at": "2026-08-03 00:12:29.486213",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/跟清北名师学全年数学_20260802_2357.mp4",
+    "duration": 311.843,
+    "status": "analyzed"
+  },
+  {
+    "id": 10,
+    "competitor_id": 3,
+    "competitor": "豆神读写文史拔尖",
+    "recorded_at": "2026-08-03 00:12:29.130788",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神读写文史拔尖_20260802_2357.mp4",
+    "duration": 311.792,
+    "status": "analyzed"
+  },
+  {
+    "id": 9,
     "competitor_id": 2,
-    "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-08-02 00:11:07.736853",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260801_2356.mp4",
-    "duration": 900.113,
+    "competitor": "豆神教育旗舰店",
+    "recorded_at": "2026-08-03 00:12:28.913441",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260802_2357.mp4",
+    "duration": 311.84,
+    "status": "analyzed"
+  },
+  {
+    "id": 8,
+    "competitor_id": 15,
+    "competitor": "猿辅导官方-剑桥双优",
+    "recorded_at": "2026-08-03 00:12:28.357091",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导官方-剑桥双优_20260802_2357.mp4",
+    "duration": 311.28,
+    "status": "analyzed"
+  },
+  {
+    "id": 7,
+    "competitor_id": 1,
+    "competitor": "窦昕文史阅写拔尖",
+    "recorded_at": "2026-08-03 00:12:27.459509",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/窦昕文史阅写拔尖_20260802_2357.mp4",
+    "duration": 311.68,
+    "status": "analyzed"
+  },
+  {
+    "id": 6,
+    "competitor_id": 13,
+    "competitor": "猿辅导奥数官号",
+    "recorded_at": "2026-08-03 00:12:26.830625",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导奥数官号_20260802_2357.mp4",
+    "duration": 311.546,
+    "status": "analyzed"
+  },
+  {
+    "id": 5,
+    "competitor_id": 4,
+    "competitor": "小鹿大阅读",
+    "recorded_at": "2026-08-03 00:12:07.329620",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读_20260802_2357.mp4",
+    "duration": 900.073,
+    "status": "analyzed"
+  },
+  {
+    "id": 4,
+    "competitor_id": 5,
+    "competitor": "猿辅导当堂满分大语文",
+    "recorded_at": "2026-08-03 00:12:00.702931",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20260802_2357.mp4",
+    "duration": 900.088,
     "status": "analyzed"
   },
   {
     "id": 3,
-    "competitor_id": 12,
+    "competitor_id": 14,
     "competitor": "小鹿素养小学英语大通关",
-    "recorded_at": "2026-08-02 00:11:04.150036",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养小学英语大通关_20260801_2356.mp4",
-    "duration": 900.087,
+    "recorded_at": "2026-08-03 00:12:00.674552",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养小学英语大通关_20260802_2357.mp4",
+    "duration": 900.088,
     "status": "analyzed"
   },
   {
     "id": 2,
-    "competitor_id": 4,
-    "competitor": "猿辅导当堂满分大语文",
-    "recorded_at": "2026-08-02 00:10:59.200343",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20260801_2356.mp4",
-    "duration": 900.101,
+    "competitor_id": 7,
+    "competitor": "叫叫-21天阅读习惯养成",
+    "recorded_at": "2026-08-03 00:12:00.626423",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260802_2357.mp4",
+    "duration": 900.095,
     "status": "analyzed"
   },
   {
     "id": 1,
-    "competitor_id": 11,
+    "competitor_id": 6,
     "competitor": "小鹿大阅读S版-千帆",
-    "recorded_at": "2026-08-02 00:10:58.852037",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读S版-千帆_20260801_2356.mp4",
-    "duration": 900.096,
+    "recorded_at": "2026-08-03 00:12:00.460129",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读S版-千帆_20260802_2357.mp4",
+    "duration": 900.099,
     "status": "analyzed"
   }
 ]
