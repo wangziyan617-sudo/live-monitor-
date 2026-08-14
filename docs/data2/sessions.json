@@ -1,65 +1,137 @@
 [
   {
+    "id": 15,
+    "competitor_id": 9,
+    "competitor": "张文晖-满分数学张老师",
+    "recorded_at": "2026-08-14 23:35:04.628329",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260814_2319.mp4",
+    "duration": 311.44,
+    "status": "recorded"
+  },
+  {
+    "id": 14,
+    "competitor_id": 15,
+    "competitor": "清北老师数学名师堂",
+    "recorded_at": "2026-08-14 23:35:04.313157",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/清北老师数学名师堂_20260814_2319.mp4",
+    "duration": 311.086,
+    "status": "recorded"
+  },
+  {
+    "id": 13,
+    "competitor_id": 7,
+    "competitor": "清华猴神侯子疼",
+    "recorded_at": "2026-08-14 23:35:03.437465",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/清华猴神侯子疼_20260814_2319.mp4",
+    "duration": 310.825,
+    "status": "recorded"
+  },
+  {
+    "id": 12,
+    "competitor_id": 6,
+    "competitor": "小鹿素养-小学英语官旗店",
+    "recorded_at": "2026-08-14 23:35:03.294386",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养-小学英语官旗店_20260814_2319.mp4",
+    "duration": 310.72,
+    "status": "recorded"
+  },
+  {
+    "id": 11,
+    "competitor_id": 2,
+    "competitor": "豆神读写文史拔尖",
+    "recorded_at": "2026-08-14 23:35:02.843484",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神读写文史拔尖_20260814_2319.mp4",
+    "duration": 311.518,
+    "status": "recorded"
+  },
+  {
+    "id": 10,
+    "competitor_id": 1,
+    "competitor": "窦昕文史阅写拔尖",
+    "recorded_at": "2026-08-14 23:35:01.602673",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/窦昕文史阅写拔尖_20260814_2319.mp4",
+    "duration": 311.031,
+    "status": "recorded"
+  },
+  {
+    "id": 9,
+    "competitor_id": 12,
+    "competitor": "猿辅导官方-剑桥双优",
+    "recorded_at": "2026-08-14 23:35:01.156971",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导官方-剑桥双优_20260814_2319.mp4",
+    "duration": 310.4,
+    "status": "recorded"
+  },
+  {
+    "id": 8,
+    "competitor_id": 14,
+    "competitor": "跟清北名师学全年数学",
+    "recorded_at": "2026-08-14 23:35:00.828600",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/跟清北名师学全年数学_20260814_2319.mp4",
+    "duration": 311.305,
+    "status": "recorded"
+  },
+  {
     "id": 7,
-    "competitor_id": 3,
-    "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-08-13 23:54:10.730697",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260813_2339.mp4",
-    "duration": 900.04,
-    "status": "analyzed"
+    "competitor_id": 11,
+    "competitor": "猿辅导奥数官号",
+    "recorded_at": "2026-08-14 23:35:00.706471",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导奥数官号_20260814_2319.mp4",
+    "duration": 311.0,
+    "status": "recorded"
   },
   {
     "id": 6,
-    "competitor_id": 14,
+    "competitor_id": 8,
     "competitor": "豆神教育旗舰店",
-    "recorded_at": "2026-08-13 23:54:10.441419",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260813_2339.mp4",
-    "duration": 900.08,
-    "status": "analyzed"
+    "recorded_at": "2026-08-14 23:34:44.903493",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260814_2319.mp4",
+    "duration": 900.074,
+    "status": "recorded"
   },
   {
     "id": 5,
-    "competitor_id": 2,
-    "competitor": "小鹿大阅读S版-千帆",
-    "recorded_at": "2026-08-13 23:54:09.151534",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读S版-千帆_20260813_2339.mp4",
-    "duration": 900.117,
-    "status": "analyzed"
+    "competitor_id": 3,
+    "competitor": "猿辅导当堂满分大语文",
+    "recorded_at": "2026-08-14 23:34:44.490973",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20260814_2319.mp4",
+    "duration": 900.087,
+    "status": "recorded"
   },
   {
     "id": 4,
-    "competitor_id": 7,
+    "competitor_id": 10,
     "competitor": "小鹿大阅读",
-    "recorded_at": "2026-08-13 23:54:05.194155",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读_20260813_2339.mp4",
-    "duration": 900.099,
+    "recorded_at": "2026-08-14 23:34:44.336894",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读_20260814_2319.mp4",
+    "duration": 900.107,
     "status": "analyzed"
   },
   {
     "id": 3,
-    "competitor_id": 11,
-    "competitor": "猿辅导当堂满分大语文",
-    "recorded_at": "2026-08-13 23:54:05.009780",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20260813_2339.mp4",
-    "duration": 900.092,
+    "competitor_id": 13,
+    "competitor": "叫叫阅读-21天阅读进阶",
+    "recorded_at": "2026-08-14 23:34:43.901287",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260814_2319.mp4",
+    "duration": 900.053,
     "status": "analyzed"
   },
   {
     "id": 2,
-    "competitor_id": 13,
-    "competitor": "小鹿素养小学英语大通关",
-    "recorded_at": "2026-08-13 23:54:04.775291",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养小学英语大通关_20260813_2339.mp4",
-    "duration": 900.099,
+    "competitor_id": 5,
+    "competitor": "叫叫-21天阅读习惯养成",
+    "recorded_at": "2026-08-14 23:34:43.831558",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260814_2319.mp4",
+    "duration": 900.04,
     "status": "analyzed"
   },
   {
     "id": 1,
     "competitor_id": 4,
-    "competitor": "叫叫-21天阅读习惯养成",
-    "recorded_at": "2026-08-13 23:54:04.639849",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260813_2339.mp4",
-    "duration": 900.104,
+    "competitor": "小鹿素养小学英语大通关",
+    "recorded_at": "2026-08-14 23:34:38.939800",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养小学英语大通关_20260814_2319.mp4",
+    "duration": 900.09,
     "status": "analyzed"
   }
 ]
