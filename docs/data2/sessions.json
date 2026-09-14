@@ -1,47 +1,29 @@
 [
   {
-    "id": 5,
-    "competitor_id": 9,
-    "competitor": "叫叫-21天阅读习惯养成",
-    "recorded_at": "2026-09-13 00:52:21.190214",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260913_0037.mp4",
-    "duration": 900.08,
-    "status": "analyzed"
-  },
-  {
-    "id": 4,
-    "competitor_id": 2,
-    "competitor": "豆神教育旗舰店",
-    "recorded_at": "2026-09-13 00:52:19.958355",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20260913_0037.mp4",
-    "duration": 900.08,
-    "status": "analyzed"
-  },
-  {
     "id": 3,
-    "competitor_id": 6,
+    "competitor_id": 9,
     "competitor": "张文晖-满分数学张老师",
-    "recorded_at": "2026-09-13 00:52:18.960331",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260913_0037.mp4",
-    "duration": 900.112,
+    "recorded_at": "2026-09-14 00:58:10.918281",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260914_0043.mp4",
+    "duration": 900.09,
     "status": "analyzed"
   },
   {
     "id": 2,
-    "competitor_id": 5,
-    "competitor": "猿辅导当堂满分大语文",
-    "recorded_at": "2026-09-13 00:52:17.651904",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20260913_0037.mp4",
+    "competitor_id": 3,
+    "competitor": "叫叫-21天阅读习惯养成",
+    "recorded_at": "2026-09-14 00:58:08.405419",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260914_0043.mp4",
     "duration": 900.08,
     "status": "analyzed"
   },
   {
     "id": 1,
-    "competitor_id": 1,
+    "competitor_id": 14,
     "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-09-13 00:52:14.948594",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260913_0037.mp4",
-    "duration": 900.099,
+    "recorded_at": "2026-09-14 00:58:05.355419",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260914_0043.mp4",
+    "duration": 900.095,
     "status": "analyzed"
   }
 ]
