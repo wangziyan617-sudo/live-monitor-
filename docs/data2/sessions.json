@@ -1,29 +1,47 @@
 [
   {
+    "id": 5,
+    "competitor_id": 6,
+    "competitor": "小鹿大阅读S版-千帆",
+    "recorded_at": "2026-09-15 01:25:09.073752",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿大阅读S版-千帆_20260915_0110.mp4",
+    "duration": 900.073,
+    "status": "analyzed"
+  },
+  {
+    "id": 4,
+    "competitor_id": 4,
+    "competitor": "猿辅导当堂满分大语文",
+    "recorded_at": "2026-09-15 01:25:07.885366",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20260915_0110.mp4",
+    "duration": 900.073,
+    "status": "analyzed"
+  },
+  {
     "id": 3,
     "competitor_id": 9,
     "competitor": "张文晖-满分数学张老师",
-    "recorded_at": "2026-09-14 00:58:10.918281",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260914_0043.mp4",
-    "duration": 900.09,
+    "recorded_at": "2026-09-15 01:25:07.076537",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20260915_0110.mp4",
+    "duration": 900.04,
     "status": "analyzed"
   },
   {
     "id": 2,
-    "competitor_id": 3,
-    "competitor": "叫叫-21天阅读习惯养成",
-    "recorded_at": "2026-09-14 00:58:08.405419",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260914_0043.mp4",
-    "duration": 900.08,
+    "competitor_id": 15,
+    "competitor": "叫叫阅读-21天阅读进阶",
+    "recorded_at": "2026-09-15 01:25:06.007660",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260915_0110.mp4",
+    "duration": 900.072,
     "status": "analyzed"
   },
   {
     "id": 1,
-    "competitor_id": 14,
-    "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-09-14 00:58:05.355419",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20260914_0043.mp4",
-    "duration": 900.095,
+    "competitor_id": 3,
+    "competitor": "叫叫-21天阅读习惯养成",
+    "recorded_at": "2026-09-15 01:25:01.967919",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20260915_0110.mp4",
+    "duration": 900.11,
     "status": "analyzed"
   }
 ]
