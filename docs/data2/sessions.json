@@ -1,38 +1,29 @@
 [
   {
-    "id": 4,
-    "competitor_id": 7,
-    "competitor": "清华猴神侯子疼",
-    "recorded_at": "2026-10-16 01:15:22.684248",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/清华猴神侯子疼_20261016_0100.mp4",
-    "duration": 900.056,
-    "status": "analyzed"
-  },
-  {
     "id": 3,
-    "competitor_id": 14,
+    "competitor_id": 9,
     "competitor": "张文晖-满分数学张老师",
-    "recorded_at": "2026-10-16 01:15:19.985739",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20261016_0100.mp4",
-    "duration": 900.082,
+    "recorded_at": "2026-10-17 01:18:27.129672",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20261017_0103.mp4",
+    "duration": 900.107,
     "status": "analyzed"
   },
   {
     "id": 2,
-    "competitor_id": 3,
-    "competitor": "豆神教育旗舰店",
-    "recorded_at": "2026-10-16 01:15:19.741177",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20261016_0100.mp4",
-    "duration": 900.020333,
+    "competitor_id": 10,
+    "competitor": "叫叫-21天阅读习惯养成",
+    "recorded_at": "2026-10-17 01:18:25.361662",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20261017_0103.mp4",
+    "duration": 900.115,
     "status": "analyzed"
   },
   {
     "id": 1,
-    "competitor_id": 2,
-    "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-10-16 01:15:15.780289",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20261016_0100.mp4",
-    "duration": 900.095,
+    "competitor_id": 3,
+    "competitor": "豆神教育旗舰店",
+    "recorded_at": "2026-10-17 01:18:20.004141",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神教育旗舰店_20261017_0103.mp4",
+    "duration": 900.1,
     "status": "analyzed"
   }
 ]
