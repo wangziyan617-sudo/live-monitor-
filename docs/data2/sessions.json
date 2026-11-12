@@ -1,38 +1,56 @@
 [
   {
+    "id": 6,
+    "competitor_id": 2,
+    "competitor": "叫叫-21天阅读习惯养成",
+    "recorded_at": "2026-11-12 03:50:50.720103",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20261112_0335.mp4",
+    "duration": 900.112,
+    "status": "analyzed"
+  },
+  {
+    "id": 5,
+    "competitor_id": 7,
+    "competitor": "小鹿素养-小学英语官旗店",
+    "recorded_at": "2026-11-12 03:50:50.495846",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/小鹿素养-小学英语官旗店_20261112_0335.mp4",
+    "duration": 900.056,
+    "status": "analyzed"
+  },
+  {
     "id": 4,
-    "competitor_id": 15,
-    "competitor": "张文晖-满分数学张老师",
-    "recorded_at": "2026-11-11 02:46:41.453058",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20261111_0231.mp4",
-    "duration": 900.091,
+    "competitor_id": 1,
+    "competitor": "豆神读写文史拔尖",
+    "recorded_at": "2026-11-12 03:50:49.790655",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/豆神读写文史拔尖_20261112_0335.mp4",
+    "duration": 900.073,
     "status": "analyzed"
   },
   {
     "id": 3,
-    "competitor_id": 13,
-    "competitor": "叫叫-21天阅读习惯养成",
-    "recorded_at": "2026-11-11 02:46:34.767400",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫-21天阅读习惯养成_20261111_0231.mp4",
-    "duration": 900.08,
+    "competitor_id": 5,
+    "competitor": "张文晖-满分数学张老师",
+    "recorded_at": "2026-11-12 03:50:49.703079",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/张文晖-满分数学张老师_20261112_0335.mp4",
+    "duration": 900.057,
     "status": "analyzed"
   },
   {
     "id": 2,
-    "competitor_id": 1,
-    "competitor": "叫叫阅读-21天阅读进阶",
-    "recorded_at": "2026-11-11 02:46:34.501782",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20261111_0231.mp4",
-    "duration": 900.08,
+    "competitor_id": 12,
+    "competitor": "猿辅导当堂满分大语文",
+    "recorded_at": "2026-11-12 03:50:49.702860",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20261112_0335.mp4",
+    "duration": 900.087,
     "status": "analyzed"
   },
   {
     "id": 1,
-    "competitor_id": 7,
-    "competitor": "猿辅导当堂满分大语文",
-    "recorded_at": "2026-11-11 02:46:34.012251",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/猿辅导当堂满分大语文_20261111_0231.mp4",
-    "duration": 900.073,
+    "competitor_id": 4,
+    "competitor": "叫叫阅读-21天阅读进阶",
+    "recorded_at": "2026-11-12 03:50:49.656526",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/叫叫阅读-21天阅读进阶_20261112_0335.mp4",
+    "duration": 900.08,
     "status": "analyzed"
   }
 ]
