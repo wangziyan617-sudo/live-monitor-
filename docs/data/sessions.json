@@ -1,56 +1,56 @@
 [
   {
     "id": 24,
-    "competitor_id": 5,
-    "competitor": "一本小学好物推荐",
-    "recorded_at": "2026-11-12 03:50:51.097877",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好物推荐_20261112_0335.mp4",
-    "duration": 900.08,
-    "status": "analyzed"
-  },
-  {
-    "id": 22,
-    "competitor_id": 4,
-    "competitor": "一本小学好书严选",
-    "recorded_at": "2026-11-12 03:50:50.602813",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书严选_20261112_0335.mp4",
-    "duration": 900.04,
+    "competitor_id": 6,
+    "competitor": "一本图书官方旗舰店小学",
+    "recorded_at": "2026-11-13 03:24:15.114892",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本图书官方旗舰店小学_20261113_0309.mp4",
+    "duration": 900.087,
     "status": "analyzed"
   },
   {
     "id": 23,
-    "competitor_id": 1,
-    "competitor": "一本官方旗舰店小学",
-    "recorded_at": "2026-11-12 03:50:50.602560",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本官方旗舰店小学_20261112_0335.mp4",
-    "duration": 900.09,
+    "competitor_id": 4,
+    "competitor": "一本小学好书严选",
+    "recorded_at": "2026-11-13 03:24:13.306503",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书严选_20261113_0309.mp4",
+    "duration": 900.115,
     "status": "analyzed"
   },
   {
-    "id": 21,
+    "id": 22,
     "competitor_id": 3,
     "competitor": "一本官方旗舰店",
-    "recorded_at": "2026-11-12 03:50:50.494608",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本官方旗舰店_20261112_0335.mp4",
-    "duration": 900.04,
-    "status": "analyzed"
-  },
-  {
-    "id": 20,
-    "competitor_id": 6,
-    "competitor": "一本图书官方旗舰店小学",
-    "recorded_at": "2026-11-12 03:50:49.523653",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本图书官方旗舰店小学_20261112_0335.mp4",
+    "recorded_at": "2026-11-13 03:24:12.569708",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本官方旗舰店_20261113_0309.mp4",
     "duration": 900.08,
     "status": "analyzed"
   },
   {
-    "id": 19,
+    "id": 21,
     "competitor_id": 2,
     "competitor": "一本小学好书推荐",
-    "recorded_at": "2026-11-12 03:50:49.435316",
-    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书推荐_20261112_0335.mp4",
-    "duration": 900.102,
+    "recorded_at": "2026-11-13 03:24:12.454229",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好书推荐_20261113_0309.mp4",
+    "duration": 900.08,
+    "status": "analyzed"
+  },
+  {
+    "id": 20,
+    "competitor_id": 1,
+    "competitor": "一本官方旗舰店小学",
+    "recorded_at": "2026-11-13 03:24:11.996419",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本官方旗舰店小学_20261113_0309.mp4",
+    "duration": 900.09,
+    "status": "analyzed"
+  },
+  {
+    "id": 19,
+    "competitor_id": 5,
+    "competitor": "一本小学好物推荐",
+    "recorded_at": "2026-11-13 03:24:11.933100",
+    "video_path": "/home/runner/work/live-monitor-/live-monitor-/storage/videos/一本小学好物推荐_20261113_0309.mp4",
+    "duration": 900.097,
     "status": "analyzed"
   },
   {
